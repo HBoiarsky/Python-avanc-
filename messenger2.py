@@ -1,8 +1,16 @@
-server = {}
+import json
+
+with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "r") as f:
+    server = json.load(f)
+
+def save_json():
+    with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "w") as f:
+     json.dump(server, f)
 
 def create_user(name):
     n = len(server['users']) # n_id = max([d['id'] for d in server['users']]) + 1
     server['users'].append({'id': (n + 1), 'name': name})
+    save_json()
     print('User created:', name)
 
 
@@ -70,5 +78,4 @@ def user_menu():
 
 if __name__ == "__main__":
     main_menu()
-
 
