@@ -1,26 +1,4 @@
-from datetime import datetime
-
-server = {
-    'users': [
-        {'id': 1, 'name': 'Alice'},
-        {'id': 2, 'name': 'Bob'},
-        {'id': 3, 'name': 'Third user'},
-        {'id': 4, 'name': '4'},
-        {'id': 5, 'name': '5 u'},
-    ],
-    'channels': [
-        {'id': 1, 'name': 'Town square', 'member_ids': [1, 2]}
-    ],
-    'messages': [
-        {
-            'id': 1,
-            'reception_date': datetime.now(),
-            'sender_id': 1,
-            'channel': 1,
-            'content': 'Hi 👋'
-        }
-    ]
-}
+server = {}
 
 def create_user(name):
     n = len(server['users']) # n_id = max([d['id'] for d in server['users']]) + 1
@@ -94,4 +72,3 @@ if __name__ == "__main__":
     main_menu()
 
 
-    
