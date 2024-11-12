@@ -7,22 +7,26 @@ def save_json():
     with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "w") as f:
      json.dump(server, f)
 
+
+# === Utilisateurs ===
 def create_user(name):
     n = len(server['users']) # n_id = max([d['id'] for d in server['users']]) + 1
     server['users'].append({'id': (n + 1), 'name': name})
     save_json()
     print('User created:', name)
 
-
-# new_channel_users_string = 'Alice, Bob, Charlie'
-# new_channel_users_string.split(',')
-# [user.strip() for user in new_channel_users_string]
-
-
 def display_users():
     print('User list\n--------')
     for user in server['users']:
         print(user['id'], user['name'])
+
+
+# === Canaux ===
+def create_channels(name):
+    n = len(server['channels'])
+    server['channels'].append({'id': n+1, 'name': name})
+    save_json()
+    print(f"Channel crée: {name}")
 
 def display_channels():
     print('Channel list\n--------')
@@ -30,15 +34,24 @@ def display_channels():
         print(channel['id'], channel['name'])
 
 
-def display_messages(choice):
+#  === Messages ===
+def display_messages(channel_id):
     found = False
     for message in server['messages']:
-        if message['channel'] == choice:
+        if message['channel'] == channel_id:
             print(f"Message ID: {message['id']}, Content: {message['content']}")
             found = True
     if not found:
-        print("No messages in this channel.")
+        print("Pas de messages dans ce channel.")
 
+def send_messages(channel_id, content):
+    n = len(server['messages'])
+    server['messages']. append({'id': n+1, 'channel': channel_id, 'content': content})
+    save_json()
+    print("Message envoyé")
+
+
+# === Menu ===
 def channel_list_screen():
     display_channels()
     choice = input('Select a group to see messages, 0 if not: ')
@@ -54,31 +67,54 @@ def channel_list_screen():
 def main_menu():
     while True:
         print('=== Messenger ===')
-        print('1. See users\n2. See channels\nx. Leave')
+        print('1. See users\n2. See channels\n3. Send/view messages\nx. Leave')
         choice = input('Select an option: ')
         
         if choice == 'x':
-            print('Bye!')
+            print('Au revoir!')
             break
         elif choice == '1':
             display_users()
             user_menu()
         elif choice == '2':
+            display_channels()
+            channel_menu()
+        elif choice == '3':
             channel_list_screen()
         else:
             print('Unknown option:', choice)
 
 
 def user_menu():
-    print('\nn. Create user\nx. Main menu')
-    choice = input('Select an option: ')
-    if choice == 'n':
-        name = input('Enter the name of the new user: ')
-        create_user(name)
-        display_users()  
-    else:
-        return  
+    while True :
+        print('\nn. Create user\nx. Main menu')
+        choice = input('Select an option: ')
+        if choice == 'n':
+           name = input('Enter the name of the new user: ')
+           create_user(name)
+           display_users()  
+        elif choice == 'x':
+           break  
 
+
+
+def channel_menu():
+    while True : 
+        print('\nn. Create channel\ns. Send messages\nx. Main menu')
+        choice = input('Select an option')
+        if choice == 'n': 
+            name = input("Entrer le nom du channel")
+            create_channels(name)
+            display_channels()
+        elif choice =='s':
+            display_channels()
+            channel_id = int(input('Select channel id:'))
+            content = input('Enter your message')
+            send_messages(channel_id, content)
+        elif choice == 'x':
+            break
+
+
+# === Main ===
 if __name__ == "__main__":
-    main_menu()
-
+   main_menu()
