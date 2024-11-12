@@ -39,6 +39,18 @@ def display_messages(choice):
     if not found:
         print("No messages in this channel.")
 
+def channel_list_screen():
+    display_channels()
+    choice = input('Select a group to see messages, 0 if not: ')
+    if choice == '0':
+        return main_menu()
+
+    try:
+        choice = int(choice)
+        display_messages(choice)
+    except ValueError:
+        print("Invalid input.")
+
 def main_menu():
     while True:
         print('=== Messenger ===')
@@ -52,16 +64,7 @@ def main_menu():
             display_users()
             user_menu()
         elif choice == '2':
-            display_channels()
-            choice = input('Select a group to see messages, 0 if not: ')
-            if choice == '0':
-                user_menu()
-            else:
-                try:
-                    choice = int(choice)  
-                    display_messages(choice)
-                except ValueError:
-                    print("Invalid input.")
+            channel_list_screen()
         else:
             print('Unknown option:', choice)
 
