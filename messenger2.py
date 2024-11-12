@@ -1,24 +1,40 @@
 import json
 
-with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "r") as f:
+class User: 
+  def __init__(self, id: int, name: str):
+   self.id=id
+   self.name=name
+
+def load_server():
+  with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "r") as f:
     server = json.load(f)
+    server['users'] = [User(user['id'], user['name']) for user in server['users']]
+    return server
+
+server = load_server()
+
+## server['users'] : list[dict]
+## Transfomer server['users'] en list[User]
 
 def save_json():
-    with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "w") as f:
-     json.dump(server, f)
+   server['users'] = [user.to_dict() for user in server['users']]
+   with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "w") as f:
+      json.dump(server, f)
 
 
 # === Utilisateurs ===
+
 def create_user(name):
-    n = len(server['users']) # n_id = max([d['id'] for d in server['users']]) + 1
-    server['users'].append({'id': (n + 1), 'name': name})
+    id = len(server['users']) + 1
+    new_user = User(id, name)
+    server['users'].append(new_user)
     save_json()
-    print('User created:', name)
+    print('Utilisateur créee: ')
 
 def display_users():
     print('User list\n--------')
     for user in server['users']:
-        print(user['id'], user['name'])
+        print(user.id, user.name)
 
 
 # === Canaux ===
