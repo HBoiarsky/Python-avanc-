@@ -1,9 +1,31 @@
 import json
 
-class User: 
-  def __init__(self, id: int, name: str):
-   self.id=id
-   self.name=name
+class Entité: 
+    def __init__(self, id: int, name: str):
+       self.id=id
+       self.name=name
+
+    def __repr__(self) -> str:
+        return f"{self.id}, {self.name}"
+
+class User(Entité):
+    def to_dict(self):
+        return {"id": self.id, "name": self.name}
+
+class Channel(Entité):
+    def to_dict(self):
+        return {"id": self.id, "name": self.name}
+
+class Message():
+    def __init__(self, id, channel_id, content):
+        self.id = id
+        self.channel_id = channel_id
+        self.content = content
+
+    def to_dict(self):
+        return {"id": self.id, "channel": self.channel_id, "content": self.content}
+
+
 
 def load_server():
   with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "r") as f:
@@ -23,7 +45,6 @@ def save_json():
 
 
 # === Utilisateurs ===
-
 def create_user(name):
     id = len(server['users']) + 1
     new_user = User(id, name)
