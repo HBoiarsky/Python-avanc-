@@ -25,133 +25,138 @@ class Message():
     def to_dict(self):
         return {"id": self.id, "channel": self.channel_id, "content": self.content}
 
+class Server :
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.users = []
+        self.channels = []
+        self.messages = []
+
+    def load(self):
+        with open(self.file_path, "r") as f:
+               server = json.load(f)
+               self.users = [User(id=user['id'], name=user['name']) for user in server.get('users', [])]
+               self.channels = [Channel(id=channel['id'], name=channel['name']) for channel in server.get('channels', [])]
+               self.messages = [Message(id=message['id'], channel_id=message['channel'], content=message['content']) for message in server.get('messages', [])]
+                
+    def save(self):
+        with open(self.file_path, "w") as f:
+            json.dump({
+                'users': [user.to_dict() for user in self.users],
+                'channels': [channel.to_dict() for channel in self.channels],
+                'messages': [message.to_dict() for message in self.messages]
+            }, f)
+    
+    def create_user(self, name):
+        user = User(len(self.users)+1, name)
+        self.users.append(user)
+        self.save()
+        return user
+    
+    def create_channels(self, name):
+        channel = Channel( len(self.channels)+1 ,name)
+        self.channels.append(channel)
+        self.save()
+        return channel
+    
+    def send_messages(self, channel_id, content):
+        message = Message(len(self.messages)+1, channel_id, content)
+        self.messages.append(message)
+        self.save()
+        return message
 
 
-def load_server():
-  with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "r") as f:
-    server = json.load(f)
-    server['users'] = [User(user['id'], user['name']) for user in server['users']]
-    return server
+class MessengerApp :
+    def __init__(self, server):
+        self.server = server
 
-server = load_server()
+    def display_users(self):
+        print('User list\n--------')
+        for user in self.server.users :
+          print(user)
 
-## server['users'] : list[dict]
-## Transfomer server['users'] en list[User]
+    def display_channels(self):
+        print('Channel list\n--------')
+        for channel in self.server.channels:
+            print(channel)
 
-def save_json():
-   server['users'] = [user.to_dict() for user in server['users']]
-   with open("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json", "w") as f:
-      json.dump(server, f)
+    def display_messages(self, channel_id):
+         found = False
+         for message in self.server.messages:
+           if message.channel_id == channel_id:
+                 print(f"Message ID: {message.id}, Content: {message.content}")
+                 found = True
+           if not found:
+                 print("Pas de messages dans ce channel.")
 
+    def channel_list_screen(self):
+        self.display_channels()
+        choice = input('Select a group to see messages, 0 if not: ')
+        if choice == '0':
+           return self.main_menu()
 
-# === Utilisateurs ===
-def create_user(name):
-    id = len(server['users']) + 1
-    new_user = User(id, name)
-    server['users'].append(new_user)
-    save_json()
-    print('Utilisateur créee: ')
+        try:
+           choice = int(choice)
+           self.display_messages(choice)
+        except ValueError:
+           print("Invalid input.")
 
-def display_users():
-    print('User list\n--------')
-    for user in server['users']:
-        print(user.id, user.name)
-
-
-# === Canaux ===
-def create_channels(name):
-    n = len(server['channels'])
-    server['channels'].append({'id': n+1, 'name': name})
-    save_json()
-    print(f"Channel crée: {name}")
-
-def display_channels():
-    print('Channel list\n--------')
-    for channel in server['channels']:
-        print(channel['id'], channel['name'])
-
-
-#  === Messages ===
-def display_messages(channel_id):
-    found = False
-    for message in server['messages']:
-        if message['channel'] == channel_id:
-            print(f"Message ID: {message['id']}, Content: {message['content']}")
-            found = True
-    if not found:
-        print("Pas de messages dans ce channel.")
-
-def send_messages(channel_id, content):
-    n = len(server['messages'])
-    server['messages']. append({'id': n+1, 'channel': channel_id, 'content': content})
-    save_json()
-    print("Message envoyé")
-
-
-# === Menu ===
-def channel_list_screen():
-    display_channels()
-    choice = input('Select a group to see messages, 0 if not: ')
-    if choice == '0':
-        return main_menu()
-
-    try:
-        choice = int(choice)
-        display_messages(choice)
-    except ValueError:
-        print("Invalid input.")
-
-def main_menu():
-    while True:
-        print('=== Messenger ===')
-        print('1. See users\n2. See channels\n3. Send/view messages\nx. Leave')
-        choice = input('Select an option: ')
+    def main_menu (self):
+        while True:
+            print('=== Messenger ===')
+            print('1. See users\n2. See channels\n3. Send/view messages\nx. Leave')
+            choice = input('Select an option: ')
         
-        if choice == 'x':
-            print('Au revoir!')
-            break
-        elif choice == '1':
-            display_users()
-            user_menu()
-        elif choice == '2':
-            display_channels()
-            channel_menu()
-        elif choice == '3':
-            channel_list_screen()
-        else:
-            print('Unknown option:', choice)
+            if choice == 'x':
+                print('Au revoir!')
+                break
+            elif choice == '1':
+                self.display_users()
+                self.user_menu()
+            elif choice == '2':
+                self.display_channels()
+                self.channel_menu()
+            elif choice == '3':
+                self.channel_list_screen()
+            else:
+                print('Unknown option:', choice)
+
+    def user_menu(self):
+        while True :
+          print('\nn. Create user\nx. Main menu')
+          choice = input('Select an option: ')
+          if choice == 'n':
+              name = input('Enter the name of the new user: ')
+              self.server.create_user(name)
+              self.display_users()  
+          elif choice == 'x':
+              break      
 
 
-def user_menu():
-    while True :
-        print('\nn. Create user\nx. Main menu')
-        choice = input('Select an option: ')
-        if choice == 'n':
-           name = input('Enter the name of the new user: ')
-           create_user(name)
-           display_users()  
-        elif choice == 'x':
-           break  
-
-
-
-def channel_menu():
-    while True : 
-        print('\nn. Create channel\ns. Send messages\nx. Main menu')
-        choice = input('Select an option')
-        if choice == 'n': 
+    def channel_menu(self):
+        while True: 
+           print('\nn. Create channel\nx. Main menu')
+           choice = input('Select an option')
+           if choice == 'n': 
             name = input("Entrer le nom du channel")
-            create_channels(name)
-            display_channels()
-        elif choice =='s':
-            display_channels()
-            channel_id = int(input('Select channel id:'))
-            content = input('Enter your message')
-            send_messages(channel_id, content)
-        elif choice == 'x':
+            self.server.create_channels(name)
+            self.display_channels()
+           elif choice == 'x':
             break
+ 
+    def message_menu(self):
+        self.display_channels()
+        channel_id = int(input('Select channel id:'))
+        content = input('Enter your message')
+        self.server.send_messages(channel_id, content)
 
 
 # === Main ===
 if __name__ == "__main__":
-   main_menu()
+   server = Server ("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json")
+   server.load()
+   app = MessengerApp(server)
+   app.main_menu()
+
+
+   
