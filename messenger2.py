@@ -5,7 +5,7 @@ class Entité:
        self.id=id
        self.name=name
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"{self.id}, {self.name}"
 
 class User(Entité):
@@ -64,6 +64,7 @@ class Server :
         self.messages.append(message)
         self.save()
         return message
+    
 
 
 class MessengerApp :
@@ -90,17 +91,16 @@ class MessengerApp :
                  print("Pas de messages dans ce channel.")
 
     def channel_list_screen(self):
-        self.display_channels()
-        choice = input('Select a group to see messages, 0 if not: ')
-        if choice == '0':
-           return self.main_menu()
-
-        try:
-           choice = int(choice)
-           self.display_messages(choice)
-        except ValueError:
-           print("Invalid input.")
-
+        choice = input('Select a group to see messages')
+        choice = int(choice)
+        self.display_messages(choice)
+        choice_2 = input("Do you want to write a message (0,1)? ")
+        if choice_2 == 0:
+            return self.main_menu
+        else:        
+           content = input('Write a message: ')
+           self.server.send_messages(choice, content)
+        
     def main_menu (self):
         while True:
             print('=== Messenger ===')
@@ -112,12 +112,16 @@ class MessengerApp :
                 break
             elif choice == '1':
                 self.display_users()
-                self.user_menu()
             elif choice == '2':
                 self.display_channels()
                 self.channel_menu()
             elif choice == '3':
-                self.channel_list_screen()
+                self.display_channels()
+                choice_2 = input('Send message in a channel or create channel?(0,1) ')
+                if choice_2 == 0:
+                   self.channel_list_screen()
+                else:
+                    self.channel_menu()
             else:
                 print('Unknown option:', choice)
 
@@ -132,17 +136,10 @@ class MessengerApp :
           elif choice == 'x':
               break      
 
-
     def channel_menu(self):
-        while True: 
-           print('\nn. Create channel\nx. Main menu')
-           choice = input('Select an option')
-           if choice == 'n': 
-            name = input("Entrer le nom du channel")
-            self.server.create_channels(name)
-            self.display_channels()
-           elif choice == 'x':
-            break
+        name = input("Enter the name of the new channel:")
+        self.server.create_channels(name)
+        self.display_channels()
  
     def message_menu(self):
         self.display_channels()
@@ -151,12 +148,9 @@ class MessengerApp :
         self.server.send_messages(channel_id, content)
 
 
-# === Main ===
+# ============= Main =============
 if __name__ == "__main__":
    server = Server ("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json")
    server.load()
    app = MessengerApp(server)
    app.main_menu()
-
-
-   
