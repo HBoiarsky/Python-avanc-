@@ -53,6 +53,7 @@ class Server :
         self.save()
         return user
     
+    
     def create_channels(self, name):
         channel = Channel( len(self.channels)+1 ,name)
         self.channels.append(channel)
@@ -82,16 +83,17 @@ class MessengerApp :
             print(channel)
 
     def display_messages(self, channel_id):
-         found = False
-         for message in self.server.messages:
+        print(f"Messages dans le canal {channel_id}")
+        found = False
+        for message in self.server.messages:
            if message.channel_id == channel_id:
                  print(f"Message ID: {message.id}, Content: {message.content}")
                  found = True
-           if not found:
+        if not found:
                  print("Pas de messages dans ce channel.")
 
     def channel_list_screen(self):
-        choice = input('Select a group to see messages')
+        choice = int(input('Select a group to see messages'))
         choice = int(choice)
         self.display_messages(choice)
         choice_2 = input("Do you want to write a message (0,1)? ")
@@ -100,53 +102,56 @@ class MessengerApp :
         else:        
            content = input('Write a message: ')
            self.server.send_messages(choice, content)
-        
+
+    def create_user_menu(self):
+        name = input('Name of the new user: ')
+        self.server.create_user(name)
+        print('New user created')
+
+    def create_channel_menu(self):
+        name = input('Name of the new channel: ')
+        self.server.create_channel(name)
+        print('New channel created')
+
+    def send_message_menu(self):
+        self.display_channels()
+        try:
+            channel_id = input("ID where to send the message: ")
+            if channel_id not in [channel.id for channel in self.server.channels]:
+                print('Problem')
+                return
+            content = input('Message: ')
+            self.server.send_messages(channel_id, content)
+        except ValueError:
+            return
+
+
     def main_menu (self):
         while True:
-            print('=== Messenger ===')
-            print('1. See users\n2. See channels\n3. Send/view messages\nx. Leave')
-            choice = input('Select an option: ')
-        
-            if choice == 'x':
-                print('Au revoir!')
-                break
-            elif choice == '1':
+            print("\n=== Messenger ===")
+            print("1. Voir les utilisateurs")
+            print("2. Voir les canaux")
+            print("3. Envoyer un message")
+            print("4. Créer un utilisateur")
+            print("5. Créer un canal")
+            print("x. Quitter")
+
+            choice = input("Choisissez une option : ")
+            if choice == "1":
                 self.display_users()
-            elif choice == '2':
+            elif choice == "2":
                 self.display_channels()
-                self.channel_menu()
-            elif choice == '3':
-                self.display_channels()
-                choice_2 = input('Send message in a channel or create channel?(0,1) ')
-                if choice_2 == 0:
-                   self.channel_list_screen()
-                else:
-                    self.channel_menu()
+            elif choice == "3":
+                self.send_message_menu()
+            elif choice == "4":
+                self.create_user_menu()
+            elif choice == "5":
+                self.create_channel_menu()
+            elif choice == "x":
+                print("Au revoir !")
+                break
             else:
-                print('Unknown option:', choice)
-
-    def user_menu(self):
-        while True :
-          print('\nn. Create user\nx. Main menu')
-          choice = input('Select an option: ')
-          if choice == 'n':
-              name = input('Enter the name of the new user: ')
-              self.server.create_user(name)
-              self.display_users()  
-          elif choice == 'x':
-              break      
-
-    def channel_menu(self):
-        name = input("Enter the name of the new channel:")
-        self.server.create_channels(name)
-        self.display_channels()
- 
-    def message_menu(self):
-        self.display_channels()
-        channel_id = int(input('Select channel id:'))
-        content = input('Enter your message')
-        self.server.send_messages(channel_id, content)
-
+                print("Option invalide.")
 
 # ============= Main =============
 if __name__ == "__main__":
