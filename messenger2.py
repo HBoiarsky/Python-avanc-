@@ -53,12 +53,27 @@ class Server :
         self.save()
         return user
     
+    def ban_user(self, name):
+        user_to_ban = next((user for user in self.users if user.name==name), None)
+        if not user_to_ban :
+            print('No user to ban')
+            return
+        self.users.remove(user_to_ban)
+        self.save()
     
     def create_channels(self, name):
         channel = Channel( len(self.channels)+1 ,name)
         self.channels.append(channel)
         self.save()
         return channel
+    
+    def ban_channel(self, name):
+        channel_to_ban = next((channel for channel in self.channels if channel.name == name), None)
+        if not channel_to_ban:
+            print('No channel to ban')
+            return
+        self.channels.remove(channel_to_ban)
+        self.save()
     
     def send_messages(self, channel_id, content):
         message = Message(len(self.messages)+1, channel_id, content)
@@ -108,10 +123,22 @@ class MessengerApp :
         self.server.create_user(name)
         print('New user created')
 
+    def ban_user_menu(self):
+        self.display_users()
+        name = input('Name of the user to ban: ')
+        self.server.ban_user(name)
+        print(f'{name} ban') 
+
     def create_channel_menu(self):
         name = input('Name of the new channel: ')
         self.server.create_channel(name)
         print('New channel created')
+
+    def ban_channel_menu(self):
+        self.display_channels()
+        name = input('name of the channel to ban: ')
+        self.server.ban_channel(name)
+        print(f'{name} ban')
 
     def send_message_menu(self):
         self.display_channels()
@@ -133,7 +160,9 @@ class MessengerApp :
             print("2. Voir les canaux")
             print("3. Envoyer un message")
             print("4. Créer un utilisateur")
-            print("5. Créer un canal")
+            print("5. Bannir un utilisateur")
+            print("6. Créer un canal")
+            print("7. Supprimer un canal ")
             print("x. Quitter")
 
             choice = input("Choisissez une option : ")
@@ -146,7 +175,11 @@ class MessengerApp :
             elif choice == "4":
                 self.create_user_menu()
             elif choice == "5":
+                self.ban_user_menu()
+            elif choice == "6":
                 self.create_channel_menu()
+            elif choice == "7":
+                self.ban_channel_menu()
             elif choice == "x":
                 print("Au revoir !")
                 break
