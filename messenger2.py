@@ -1,4 +1,5 @@
 import json
+import argparse
 
 class Entité: 
     def __init__(self, id: int, name: str):
@@ -188,7 +189,6 @@ class MessengerApp :
 
 # ============= Main =============
 if __name__ == "__main__":
-   server = Server ("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json")
-   server.load()
+   server = argparse.ArgumentParser(prog='server--file', description='Chose the server file', epilog='Size a json file')   server.load()
    app = MessengerApp(server)
    app.main_menu()
