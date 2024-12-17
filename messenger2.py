@@ -2,7 +2,6 @@ import json
 import argparse
 import os
 
-
 class Entité: 
     def __init__(self, id: int, name: str):
        self.id=id
@@ -36,7 +35,9 @@ class Server :
         self.messages = []
 
     def load(self):
-        with open(self.file_path, "r") as f:
+         if not self.file_path:
+           raise ValueError("Le chemin du fichier JSON est manquant. Utilisez l'argument --server pour spécifier un fichier.")
+         with open(self.file_path, "r") as f:
                server = json.load(f)
                self.users = [User(id=user['id'], name=user['name']) for user in server.get('users', [])]
                self.channels = [Channel(id=channel['id'], name=channel['name']) for channel in server.get('channels', [])]
@@ -201,15 +202,16 @@ class Client:  # MessengerApp
             else:
                 print("Option invalide.")
 
-# ============= Main =============
+# ======================= Main ===========================
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--server', help = 'enter json server path')
+parser.add_argument('-s', '--server', help = 'enter json server path')
 args = parser.parse_args()
 print(f'Server json : {args.server}')
 
 if __name__ == "__main__":
     server = Server(args.server)
     server.load()
-    app = MessengerApp(server)
+    app = Client(server)
     app.main_menu()
+
