@@ -1,5 +1,7 @@
 import json
 import argparse
+import os
+
 
 class Entité: 
     def __init__(self, id: int, name: str):
@@ -62,7 +64,7 @@ class Server :
         self.users.remove(user_to_ban)
         self.save()
     
-    def create_channels(self, name):
+    def create_channel(self, name):
         channel = Channel( len(self.channels)+1 ,name)
         self.channels.append(channel)
         self.save()
@@ -84,21 +86,32 @@ class Server :
     
 
 
-class MessengerApp :
+class Client:  # MessengerApp
+
+    @staticmethod
+    def clearConsole():
+        command = "clear"
+        if os.name in ("nt", "dos"):
+            command = "cls"
+        os.system(command)
+
     def __init__(self, server):
         self.server = server
 
     def display_users(self):
+        self.clearConsole()
         print('User list\n--------')
         for user in self.server.users :
           print(user)
 
     def display_channels(self):
+        self.clearConsole()
         print('Channel list\n--------')
         for channel in self.server.channels:
             print(channel)
 
     def display_messages(self, channel_id):
+        self.clearConsole()
         print(f"Messages dans le canal {channel_id}")
         found = False
         for message in self.server.messages:
@@ -108,55 +121,56 @@ class MessengerApp :
         if not found:
                  print("Pas de messages dans ce channel.")
 
-    def channel_list_screen(self):
-        choice = int(input('Select a group to see messages'))
-        choice = int(choice)
-        self.display_messages(choice)
-        choice_2 = input("Do you want to write a message (0,1)? ")
-        if choice_2 == 0:
-            return self.main_menu
-        else:        
-           content = input('Write a message: ')
-           self.server.send_messages(choice, content)
-
     def create_user_menu(self):
+        self.clearConsole()
         name = input('Name of the new user: ')
         self.server.create_user(name)
+        self.clearConsole()
         print('New user created')
 
     def ban_user_menu(self):
+        self.clearConsole()
         self.display_users()
         name = input('Name of the user to ban: ')
         self.server.ban_user(name)
-        print(f'{name} ban') 
+        self.clearConsole()
+        print(f'{name} ban')
 
     def create_channel_menu(self):
+        self.clearConsole()
         name = input('Name of the new channel: ')
         self.server.create_channel(name)
+        self.clearConsole()
         print('New channel created')
 
     def ban_channel_menu(self):
+        self.clearConsole()
         self.display_channels()
         name = input('name of the channel to ban: ')
         self.server.ban_channel(name)
+        self.clearConsole()
         print(f'{name} ban')
 
     def send_message_menu(self):
+        self.clearConsole()
         self.display_channels()
         try:
-            channel_id = input("ID where to send the message: ")
+            channel_id = int(input("ID where to send the message: "))
             if channel_id not in [channel.id for channel in self.server.channels]:
                 print('Problem')
                 return
             content = input('Message: ')
             self.server.send_messages(channel_id, content)
+            self.clearConsole()
+            print('Message sent')
         except ValueError:
+            print('')
             return
 
 
     def main_menu (self):
         while True:
-            print("\n=== Messenger ===")
+            print("\n====== Messenger ======")
             print("1. Voir les utilisateurs")
             print("2. Voir les canaux")
             print("3. Envoyer un message")
