@@ -188,10 +188,14 @@ class MessengerApp :
                 print("Option invalide.")
 
 # ============= Main =============
-argument = argparse.ArgumentParser(prog='server--file', description='Chose the server file', epilog='Size a json file')
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--server', help = 'enter json server path')
+args = parser.parse_args()
+print(f'Server json : {args.server}')
 
 if __name__ == "__main__":
-    server = Server(argument)
+    server = Server(args.server)
     server.load()
     app = MessengerApp(server)
     app.main_menu()
