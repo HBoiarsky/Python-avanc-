@@ -1,5 +1,7 @@
 import json
+import argparse
 import os
+
 
 class Entité: 
     def __init__(self, id: int, name: str):
@@ -200,8 +202,14 @@ class Client:  # MessengerApp
                 print("Option invalide.")
 
 # ============= Main =============
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--server', help = 'enter json server path')
+args = parser.parse_args()
+print(f'Server json : {args.server}')
+
 if __name__ == "__main__":
-   server = Server ("/Users/honoreboiarsky/Documents/python avancé 2/messenger2.json")
-   server.load()
-   app = Client(server)
-   app.main_menu()
+    server = Server(args.server)
+    server.load()
+    app = MessengerApp(server)
+    app.main_menu()
