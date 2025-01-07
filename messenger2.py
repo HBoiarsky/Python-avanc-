@@ -1,6 +1,7 @@
 import json
 import argparse
 import os
+import requests
 
 class Entité: 
     def __init__(self, id: int, name: str):
@@ -27,7 +28,29 @@ class Message():
     def to_dict(self):
         return {"id": self.id, "channel": self.channel_id, "content": self.content}
 
-class Server :
+
+class BaseServer: 
+    def get_channels(self):
+        pass
+
+    def create_channel(self, name):
+        pass
+    def delete_channel(self,channel_id):
+        pass
+
+    def get_users(self):
+        pass
+
+    def create_user(self, name):
+        pass
+
+    def ban_user(self, name):
+        pass
+
+    def send_message(self, channel_id, content):
+        pass
+
+class Server(BaseServer) :
     def __init__(self, file_path):
         self.file_path = file_path
         self.users = []
@@ -51,6 +74,9 @@ class Server :
                 'messages': [message.to_dict() for message in self.messages]
             }, f)
     
+    def get_users(self):
+        return self.users
+
     def create_user(self, name):
         user = User(len(self.users)+1, name)
         self.users.append(user)
@@ -70,6 +96,9 @@ class Server :
         self.channels.append(channel)
         self.save()
         return channel
+
+    def get_channels(self):
+        return self.channels
     
     def ban_channel(self, name):
         channel_to_ban = next((channel for channel in self.channels if channel.name == name), None)
@@ -84,8 +113,38 @@ class Server :
         self.messages.append(message)
         self.save()
         return message
-    
 
+class RemoteServer(BaseServer):
+    def __init__(self, url):
+        self.url = url
+
+    def get_channels(self):
+          response = requests.get(f"{self.url}/channels")
+          channels = response.json()
+          return [Channel(id=channel['id'], name=channel['name']) for channel in channels]
+    
+    def create_channel(self, name):
+            response = requests.post(f"{self.url}/channels", json={"name": name})
+            return response.json()
+
+    def delete_channel(self, channel_id):
+            response = requests.delete(f"{self.url}/channels/{channel_id}")
+
+    def get_users(self):
+            response = requests.get(f"{self.url}/users")
+            users = response.json()
+            return [User(id=user['id'], name=user['name']) for user in users]
+    
+    def create_user(self, name):
+            response = requests.post(f"{self.url}/users", json={"name": name})
+            return response.json()
+
+    def ban_user(self, name):
+            response = requests.delete(f"{self.url}/users/{name}")
+
+    def send_message(self, channel_id, content):
+            response = requests.post(f"{self.url}/messages", json={"channel": channel_id, "content": content})
+            return response.json()
 
 class Client:  # MessengerApp
 
@@ -102,7 +161,10 @@ class Client:  # MessengerApp
     def display_users(self):
         self.clearConsole()
         print('User list\n--------')
-        for user in self.server.users :
+        users = self.server.get_users()  
+        if not users:
+          print("Aucun utilisateur trouvé.")
+        for user in users:
           print(user)
 
     def display_channels(self):
@@ -201,17 +263,23 @@ class Client:  # MessengerApp
                 break
             else:
                 print("Option invalide.")
-
-# ======================= Main ===========================
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--server', help = 'enter json server path')
-args = parser.parse_args()
-print(f'Server json : {args.server}')
-
+    
+# =================================== Main ===========================================
 if __name__ == "__main__":
-    server = Server(args.server)
-    server.load()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--server', help='Chemin du fichier JSON du serveur local')
+    parser.add_argument('--url', help='URL du serveur distant')
+    args = parser.parse_args()
+
+    if args.server:
+        print(f"Chargement du serveur local : {args.server}")
+        server = Server(args.server)
+        server.load()
+    elif args.url:
+        print(f"Connexion au serveur distant : {args.url}")
+        server = RemoteServer(args.url)
+    else:
+        raise ValueError("Vous devez spécifier un fichier JSON local (--server) ou une URL distante (--url).")
+
     app = Client(server)
     app.main_menu()
-
