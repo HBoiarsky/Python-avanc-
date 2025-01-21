@@ -30,6 +30,8 @@ class Message():
 
 
 class BaseServer: 
+
+#@abstractmethod
     def get_channels(self):
         pass
 
@@ -113,7 +115,8 @@ class Server(BaseServer) :
         self.messages.append(message)
         self.save()
         return message
-
+    
+    
 class RemoteServer(BaseServer):
     def __init__(self, url):
         self.url = url
@@ -134,14 +137,16 @@ class RemoteServer(BaseServer):
     def create_channel(self, name):
         response = requests.post(self.url + "/channels/create", json={"name":name})
 
-    def send_messages(self, channel_id, content):
-        response = requests.post(self.url + "/messages", json={"channel": channel_id, "content": content})
-        return response.json()
-
     def get_messages(self, channel_id):
-        response = requests.get(self.url + f"/messages/{channel_id}")
-        return response.json()
-
+      response = requests.get(self.url + "/messages")
+      messages = response.json()
+      filtered_messages = [message for message in messages if message['channel_id'] == channel_id]
+      return filtered_messages
+    
+    def post_message(self, channel_id, sender_id, content):
+      response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": sender_id,"content": content})
+      return response.json
+    
 class Client:  # MessengerApp
 
     @staticmethod
@@ -178,7 +183,7 @@ class Client:  # MessengerApp
           print("Pas de messages dans ce channel.")
         else:
           for message in messages:
-            print(f"Message ID: {message['id']}, Content: {message['content']}")
+            print(f"Message ID: {message['id']}, Sender ID: {message['sender_id']}, Content: {message['content']}, Date: {message['reception_date']}")
 
     def create_user_menu(self):
         name = input('Name of the new user: ')
@@ -217,18 +222,18 @@ class Client:  # MessengerApp
             if channel_id not in [channel.id for channel in self.server.get_channels()]:
                 print('Problem')
                 return
+            sender_id = int(input("ID de l'utilisateur envoyant le message : "))
             content = input('Message: ')
-            self.server.send_messages(channel_id, content)
+            self.server.post_message(channel_id, sender_id, content)
             self.clearConsole()
             print('Message sent')
         except ValueError:
             print('')
             return
-
-
+    
     def main_menu (self):
         while True:
-            print("\n====== Messenger ======")
+            print("\033[32m\n===================== Messenger =========================\033[0m")
             print("1. Voir les utilisateurs")
             print("2. Voir les canaux")
             print("3. Envoyer un message")
