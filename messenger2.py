@@ -1,5 +1,5 @@
 import argparse
-from server2 import Server, RemoteServer
+from server import Server, RemoteServer
 from client import Client
 
 if __name__ == "__main__":

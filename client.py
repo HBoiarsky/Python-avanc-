@@ -1,5 +1,5 @@
 import os
-from server2 import Server, RemoteServer
+from server import Server, RemoteServer
 
 class Client:  # MessengerApp
 
@@ -24,8 +24,8 @@ class Client:  # MessengerApp
                 print(f"\033[34m{user}\033[0m")
 
     def display_channel_members(self):
+        channel_id = int(input("\033[33mChannel ID : \033[0m"))
         self.clearConsole()
-        channel_id = int(input("\033[33mChannel ID pour voir les membres : \033[0m"))
         members = self.server.get_channel_members(channel_id)
         print(f"\033[32mUtilisateurs dans le canal : {channel_id}\033[0m")
         if not members:
@@ -46,6 +46,7 @@ class Client:  # MessengerApp
         channel_id = int(input("\033[33mID du canal à rejoindre: \033[0m"))
         user_id = int(input("\033[33mID de l'utilisateur: \033[0m"))
         name = input("\033[33mNom de l'utilisateur: \033[0m")
+        self.clearConsole()
         self.server.join_channel(channel_id, user_id, name)
     
     def list_messages(self):
@@ -84,7 +85,6 @@ class Client:  # MessengerApp
         print(f"\033[32m{name} ban\033[0m")
 
     def create_channel_menu(self):
-        self.clearConsole()
         name = input("\033[33mName of the new channel: \033[0m")
         self.server.create_channel(name)
         self.clearConsole()
@@ -119,6 +119,8 @@ class Client:  # MessengerApp
     def main_menu(self):
      while True:
         print("\033[32m\n===================== 📩 Messenger =========================\033[0m")
+        print("\033[32m\n============================================================\033[0m")
+        print()
         print("\033[34m1. 👥 Voir tous les utilisateurs\033[0m")
         print("\033[34m2. 🔍 Voir les utilisateurs d'un canal\033[0m")
         print("\033[34m3. 🆕 Créer un utilisateur\033[0m")
@@ -131,7 +133,7 @@ class Client:  # MessengerApp
         print("\033[34m10. 🚫 Bannir un utilisateur\033[0m")
         print("\033[34m11. ❌ Bannir un canal\033[0m")
         print("\033[31mx. Quitter\033[0m")
-
+        print()
         choice = input("\033[33m🔸 Choisissez une option : \033[0m")  # Texte en jaune pour l'entrée utilisateur
         
         if choice == "1":
