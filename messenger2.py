@@ -137,15 +137,27 @@ class RemoteServer(BaseServer):
     def create_channel(self, name):
         response = requests.post(self.url + "/channels/create", json={"name":name})
 
+    def get_channel_members(self, channel_id):
+        response = requests.get(f"{self.url}/channels/{channel_id}/members")
+        return response.json()
+
+    def join_channel(self, channel_id, user_id, name):
+        response = requests.post(f"{self.url}/channels/{channel_id}/join", json={"user_id": user_id, "name": name})
+        print(f"L'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.")
+        return response.json()
+
+    def get_all_messages(self):
+        response = requests.get(f"{self.url}/messages", headers={"accept": "application/json"})
+        return response.json()
+
     def get_messages(self, channel_id):
-      response = requests.get(self.url + "/messages")
-      messages = response.json()
-      filtered_messages = [message for message in messages if message['channel_id'] == channel_id]
-      return filtered_messages
+        response = requests.get(self.url + "/messages")
+        messages = response.json()
+        return [message for message in messages if message['channel_id'] == channel_id]
     
     def post_message(self, channel_id, sender_id, content):
-      response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": sender_id,"content": content})
-      return response.json
+        response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": sender_id,"content": content})
+        return response.json
     
 class Client:  # MessengerApp
 
@@ -169,11 +181,42 @@ class Client:  # MessengerApp
          for user in users:
           print(user)
 
+    def display_channel_members(self):
+        self.clearConsole()
+        channel_id = int(input("Channel ID pour voir les membres : "))
+        members = self.server.get_channel_members(channel_id)
+        print(f"Utilisateurs dans le canal :  {channel_id}")
+        if not members:
+            print("Aucun utilisateur trouvé.")
+        else:
+            for member in members:
+                print(f"ID: {member['id']}, Name: {member['name']}")
+
     def display_channels(self):
         self.clearConsole()
         print('Channel list\n--------')
         for channel in self.server.get_channels():
             print(channel)
+
+    def join_channel_menu(self):
+        self.clearConsole()
+        self.display_channels()
+        channel_id = int(input("ID du canal à rejoindre: "))
+        user_id = int(input("ID de l'utilisateur: "))
+        name = input("Nom de l'utilisateur: ")
+        self.server.join_channel(channel_id, user_id, name)
+        
+    
+    def list_messages(self):
+        self.clearConsole()
+        messages = self.server.get_all_messages()
+        if messages:
+            print("\n Liste des messages :")
+            for msg in messages:
+                print(f"[{msg['reception_date']}] (Canal {msg['channel_id']}) Sender {msg['sender_id']} : {msg['content']}")
+        else:
+            print("Aucun message à afficher.")
+
 
     def display_messages(self, channel_id):
         self.clearConsole()
@@ -234,34 +277,43 @@ class Client:  # MessengerApp
     def main_menu (self):
         while True:
             print("\033[32m\n===================== Messenger =========================\033[0m")
-            print("1. Voir les utilisateurs")
-            print("2. Voir les canaux")
-            print("3. Envoyer un message")
-            print("4. Lire les canaux")
-            print("5. Créer un utilisateur")
-            print("6. Bannir un utilisateur")
-            print("7. Créer un canal")
-            print("8. Supprimer un canal ")
+            print("1. Voir tous les utilisateurs")
+            print("2. Voir les utilisateurs d'un canal")
+            print("3. Voir les canaux")
+            print("4. Envoyer un message")
+            print("5. Lire les canaux")
+            print("6. Créer un utilisateur")
+            print("7. Bannir un utilisateur")
+            print("8. Créer un canal")
+            print("9. Supprimer un canal ")
+            print("10. Rejoindre un canal")
+            print("11. Lister les messages")
             print("x. Quitter")
 
             choice = input("Choisissez une option : ")
             if choice == "1":
                 self.display_users()
             elif choice == "2":
-                self.display_channels()
+                self.display_channel_members()
             elif choice == "3":
-                self.send_message_menu()
+                self.display_channels()
             elif choice == "4":
+                self.send_message_menu()
+            elif choice == "5":
                 channel_id = int(input("Enter the channel ID to view messages: "))
                 self.display_messages(channel_id)
-            elif choice == "5":
-                self.create_user_menu()
             elif choice == "6":
-                self.ban_user_menu()
+                self.create_user_menu()
             elif choice == "7":
-                self.create_channel_menu()
+                self.ban_user_menu()
             elif choice == "8":
+                self.create_channel_menu()
+            elif choice == "9":
                 self.ban_channel_menu()
+            elif choice == "10":
+                self.join_channel_menu()
+            elif choice =="11":
+                self.list_messages()
             elif choice == "x":
                 print("Au revoir !")
                 break
