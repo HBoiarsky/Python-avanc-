@@ -32,7 +32,11 @@ class Client:  # MessengerApp
             print("\033[31mAucun utilisateur trouvé.\033[0m")
         else:
             for member in members:
-                print(f"\033[34mID: {member['id']}, Name: {member['name']}\033[0m")
+                if isinstance(member, dict):
+                    print(f"\033[34mID: {member['id']}, Name: {member['name']}\033[0m")
+                else:
+                    print(f"\033[34mID: {member.id}, Name: {member.name}\033[0m")
+
 
     def display_channels(self):
         self.clearConsole()
@@ -54,8 +58,11 @@ class Client:  # MessengerApp
         messages = self.server.get_all_messages()
         if messages:
             print("\033[32m\n Liste des messages :\033[0m")
-            for msg in messages:
-                print(f"\033[34m[{msg['reception_date']}] (Canal {msg['channel_id']}) Sender {msg['sender_id']} : {msg['content']}\033[0m")
+            for message in messages:
+                if isinstance(message, dict):  
+                    print(f"\033[34m[{message['reception_date']}] (Canal {message['channel_id']}) Sender {message['sender_id']} : {message['content']}\033[0m")
+                else:
+                    print(f"\033[34m(Cannal {message.channel_id}) Sender {message.sender_id} : {message.content}\033[0m")
         else:
             print("\033[31mAucun message à afficher.\033[0m")
 
@@ -68,7 +75,10 @@ class Client:  # MessengerApp
             print("\033[31mPas de messages dans ce channel.\033[0m")
         else:
             for message in messages:
-                print(f"\033[34mMessage ID: {message['id']}, Sender ID: {message['sender_id']}, Content: {message['content']}, Date: {message['reception_date']}\033[0m")
+                if isinstance(message, dict):  
+                    print(f"\033[34m[{message['reception_date']}] Sender {message['sender_id']} : {message['content']}\033[0m")
+                else:
+                    print(f"\033[34mSender {message.sender_id} : {message.content}\033[0m")
 
     def create_user_menu(self):
         name = input("\033[33mName of the new user: \033[0m")

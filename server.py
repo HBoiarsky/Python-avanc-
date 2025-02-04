@@ -33,14 +33,15 @@ class Server(BaseServer) :
         self.messages = []
 
     def load(self):
-         if not self.file_path:
-           raise ValueError("Le chemin du fichier JSON est manquant. Utilisez l'argument --server pour spécifier un fichier.")
-         with open(self.file_path, "r") as f:
-               server = json.load(f)
-               self.users = [User(id=user['id'], name=user['name']) for user in server.get('users', [])]
-               self.channels = [Channel(id=channel['id'], name=channel['name']) for channel in server.get('channels', [])]
-               self.messages = [Message(id=message['id'], channel_id=message['channel'], content=message['content']) for message in server.get('messages', [])]
-                
+        if not self.file_path:
+            raise ValueError("Le chemin du fichier JSON est manquant. Utilisez l'argument --server pour spécifier un fichier.")
+        with open(self.file_path, "r") as f:
+            server = json.load(f)
+            self.users = [User(id=user['id'], name=user['name']) for user in server.get('users', [])]
+            self.channels = [Channel(id=channel['id'], name=channel['name']) for channel in server.get('channels', [])]
+            self.messages = [Message(sender_id=message['sender_id'], channel_id=message['channel'], content=message['content']) for message in server.get('messages', [])]
+
+
     def save(self):
         with open(self.file_path, "w") as f:
             json.dump({
@@ -65,6 +66,9 @@ class Server(BaseServer) :
             return
         self.users.remove(user_to_ban)
         self.save()
+
+    def get_channels(self):
+        return self.channels
     
     def create_channel(self, name):
         channel = Channel( len(self.channels)+1 ,name)
@@ -72,9 +76,6 @@ class Server(BaseServer) :
         self.save()
         return channel
 
-    def get_channels(self):
-        return self.channels
-    
     def ban_channel(self, name):
         channel_to_ban = next((channel for channel in self.channels if channel.name == name), None)
         if not channel_to_ban:
@@ -82,9 +83,31 @@ class Server(BaseServer) :
             return
         self.channels.remove(channel_to_ban)
         self.save()
+
+    def join_channel(self, channel_id, user_id, name):
     
-    def send_messages(self, channel_id, content):
-        message = Message(len(self.messages)+1, channel_id, content)
+        user = next((user for user in self.users if user.id == user_id), None)
+        if not user:
+            print(f"Erreur: L'utilisateur {user_id} n'existe pas.")
+            return
+
+        channel = next((channel for channel in self.channels if channel.id == channel_id), None)
+        if not channel:
+            print(f"Erreur: Le canal {channel_id} n'existe pas.")
+            return
+
+        channel.members.append({"user_id": user_id, "name": name})
+        print(f"\033[34mL'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.\033[0m")
+        self.save()
+
+    def get_all_messages(self):
+        return [message for message in self.messages]
+
+    def get_messages(self, channel_id):
+        return [message for message in self.messages if message.channel_id == channel_id]
+
+    def post_message(self, sender_id, channel_id, content):
+        message = Message(sender_id, channel_id, content)
         self.messages.append(message)
         self.save()
         return message
@@ -116,7 +139,7 @@ class RemoteServer(BaseServer):
 
     def join_channel(self, channel_id, user_id, name):
         response = requests.post(f"{self.url}/channels/{channel_id}/join", json={"user_id": user_id, "name": name})
-        print(f"L'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.")
+        print(f"\033[34mL'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.\033[0m")
         return response.json()
 
     def get_all_messages(self):

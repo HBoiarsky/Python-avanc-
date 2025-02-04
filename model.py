@@ -1,7 +1,7 @@
 import json
 
 class Entité: 
-    def __init__(self, id: int, name: str):
+    def __init__(self,id ,name):
        self.id=id
        self.name=name
 
@@ -13,14 +13,18 @@ class User(Entité):
         return {"id": self.id, "name": self.name}
 
 class Channel(Entité):
+    def __init__(self, id, name):
+        super().__init__(id, name)
+        self.members = []
+
     def to_dict(self):
-        return {"id": self.id, "name": self.name}
+        return {"id": self.id, "name": self.name, "members": self.members}
 
 class Message():
-    def __init__(self, id, channel_id, content):
-        self.id = id
+    def __init__(self, sender_id, channel_id, content):
+        self.sender_id = sender_id
         self.channel_id = channel_id
         self.content = content
 
     def to_dict(self):
-        return {"id": self.id, "channel": self.channel_id, "content": self.content}
+        return {"sender_id": self.sender_id, "channel": self.channel_id, "content": self.content}
