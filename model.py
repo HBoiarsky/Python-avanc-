@@ -1,7 +1,7 @@
 import json
 
 class Entité: 
-    def __init__(self,id ,name):
+    def __init__(self ,id ,name):
        self.id=id
        self.name=name
 
@@ -18,7 +18,7 @@ class Channel(Entité):
         self.members = []
 
     def to_dict(self):
-        return {"id": self.id, "name": self.name, "members": self.members}
+        return {"id": self.id, "name": self.name, "members": [{"id": member.id, "name": member.name} for member in self.members]}
 
 class Message():
     def __init__(self, sender_id, channel_id, content):

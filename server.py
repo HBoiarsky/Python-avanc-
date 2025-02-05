@@ -84,20 +84,25 @@ class Server(BaseServer) :
         self.channels.remove(channel_to_ban)
         self.save()
 
-    def join_channel(self, channel_id, user_id, name):
-    
-        user = next((user for user in self.users if user.id == user_id), None)
-        if not user:
-            print(f"Erreur: L'utilisateur {user_id} n'existe pas.")
-            return
+    def get_channel_members(self, channel_id):
+        channel = next((channel for channel in self.channels if channel.id == channel_id), None)
+        if channel:
+            return channel.members  
+        return []
 
+    def join_channel(self, channel_id, id, name):
+        user = next((user for user in self.users if user.name == name), None)
+        if not user:
+            print(f"\033[34mErreur: L'utilisateur {name} n'existe pas.\033[0m")
+            return
+    
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
         if not channel:
-            print(f"Erreur: Le canal {channel_id} n'existe pas.")
+            print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
             return
 
-        channel.members.append({"user_id": user_id, "name": name})
-        print(f"\033[34mL'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.\033[0m")
+        channel.members.append(user)
+        print(f"\033[34mL'utilisateur {name} (ID: {id}) a rejoint le canal {channel_id}.\033[0m")
         self.save()
 
     def get_all_messages(self):
@@ -106,8 +111,8 @@ class Server(BaseServer) :
     def get_messages(self, channel_id):
         return [message for message in self.messages if message.channel_id == channel_id]
 
-    def post_message(self, sender_id, channel_id, content):
-        message = Message(sender_id, channel_id, content)
+    def post_message(self, channel_id, sender_name,  content):
+        message = Message(sender_name, channel_id, content)
         self.messages.append(message)
         self.save()
         return message
@@ -138,6 +143,23 @@ class RemoteServer(BaseServer):
         return response.json()
 
     def join_channel(self, channel_id, user_id, name):
+
+        users_response = requests.get(self.url + "/users")
+        users = users_response.json()
+        user = next((user for user in users if user["name"] == name), None)
+        if not user:
+            print(f"\033[34mErreur: L'utilisateur {name} n'existe pas.\033[0m")
+            return
+
+        user_id = user["id"]
+
+        channels_response = requests.get(f"{self.url}/channels")
+        channels = channels_response.json()
+        channel = next((channel for channel in channels if channel["id"] == channel_id), None)
+        if not channel:
+            print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
+            return
+
         response = requests.post(f"{self.url}/channels/{channel_id}/join", json={"user_id": user_id, "name": name})
         print(f"\033[34mL'utilisateur {name} (ID: {user_id}) a rejoint le canal {channel_id}.\033[0m")
         return response.json()

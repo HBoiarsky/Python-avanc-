@@ -26,18 +26,18 @@ class Client:  # MessengerApp
     def display_channel_members(self):
         channel_id = int(input("\033[33mChannel ID : \033[0m"))
         self.clearConsole()
+    
         members = self.server.get_channel_members(channel_id)
-        print(f"\033[32mUtilisateurs dans le canal : {channel_id}\033[0m")
+
         if not members:
             print("\033[31mAucun utilisateur trouvé.\033[0m")
         else:
             for member in members:
-                if isinstance(member, dict):
-                    print(f"\033[34mID: {member['id']}, Name: {member['name']}\033[0m")
-                else:
-                    print(f"\033[34mID: {member.id}, Name: {member.name}\033[0m")
-
-
+                    if isinstance(member, dict):
+                        print(f"\033[34mID: {member['id']}, Name: {member['name']}\033[0m")
+                    else:
+                        print(f"\033[34mID: {member.id}, Name: {member.name}\033[0m")
+                
     def display_channels(self):
         self.clearConsole()
         print("\033[32mChannel list\n--------\033[0m")
@@ -119,7 +119,7 @@ class Client:  # MessengerApp
                 return
             sender_id = int(input("\033[33mID de l'utilisateur envoyant le message : \033[0m"))
             content = input("\033[33mMessage: \033[0m")
-            self.server.post_message(channel_id, sender_id, content)
+            self.server.post_message(channel_id, sender_id,  content)
             self.clearConsole()
             print("\033[32mMessage sent\033[0m")
         except ValueError:
