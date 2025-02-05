@@ -25,6 +25,10 @@ class Message():
         self.sender_id = sender_id
         self.channel_id = channel_id
         self.content = content
+        self.sender_name = None  
+
+    def __repr__(self):
+        return f"(Canal {self.channel_id}) {self.sender_name or 'Unknown'} : {self.content}"
 
     def to_dict(self):
         return {"sender_id": self.sender_id, "channel": self.channel_id, "content": self.content}

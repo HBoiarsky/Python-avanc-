@@ -34,9 +34,9 @@ class Client:  # MessengerApp
         else:
             for member in members:
                     if isinstance(member, dict):
-                        print(f"\033[34mID: {member['id']}, Name: {member['name']}\033[0m")
+                        print(f"\033[34mNom: {member["name"]} (ID: {member["id"]})\033[0m")
                     else:
-                        print(f"\033[34mID: {member.id}, Name: {member.name}\033[0m")
+                        print(f"\033[34mNom: {member.name} (ID: {member.id})\033[0m")
                 
     def display_channels(self):
         self.clearConsole()
@@ -47,12 +47,12 @@ class Client:  # MessengerApp
     def join_channel_menu(self):
         self.clearConsole()
         self.display_channels()
-        channel_id = int(input("\033[33mID du canal à rejoindre: \033[0m"))
-        user_id = int(input("\033[33mID de l'utilisateur: \033[0m"))
-        name = input("\033[33mNom de l'utilisateur: \033[0m")
+        channel_id = int(input("\033[33mID du canal à rejoindre : \033[0m"))
+        user_name = input("\033[33mNom de l'utilisateur : \033[0m")  # Plus besoin de l'ID
         self.clearConsole()
-        self.server.join_channel(channel_id, user_id, name)
-    
+        self.server.join_channel(channel_id, user_name)  # Appel modifié
+
+
     def list_messages(self):
         self.clearConsole()
         messages = self.server.get_all_messages()
@@ -60,12 +60,11 @@ class Client:  # MessengerApp
             print("\033[32m\n Liste des messages :\033[0m")
             for message in messages:
                 if isinstance(message, dict):  
-                    print(f"\033[34m[{message['reception_date']}] (Canal {message['channel_id']}) Sender {message['sender_id']} : {message['content']}\033[0m")
+                    print(f"\033[34m[{message['reception_date']}] (Canal {message['channel_id']}) Sender {message['sender_name']} : {message['content']}\033[0m")
                 else:
-                    print(f"\033[34m(Cannal {message.channel_id}) Sender {message.sender_id} : {message.content}\033[0m")
+                    print(f"\033[34m(Canal {message.channel_id}) Sender {message.sender_name} : {message.content}\033[0m")
         else:
             print("\033[31mAucun message à afficher.\033[0m")
-
 
     def display_messages(self, channel_id):
         self.clearConsole()
@@ -76,9 +75,9 @@ class Client:  # MessengerApp
         else:
             for message in messages:
                 if isinstance(message, dict):  
-                    print(f"\033[34m[{message['reception_date']}] Sender {message['sender_id']} : {message['content']}\033[0m")
+                    print(f"\033[34m[{message['reception_date']}] Sender {message['sender_name']} : {message['content']}\033[0m")
                 else:
-                    print(f"\033[34mSender {message.sender_id} : {message.content}\033[0m")
+                    print(f"\033[34mSender {message.sender_name} : {message.content}\033[0m")
 
     def create_user_menu(self):
         name = input("\033[33mName of the new user: \033[0m")
@@ -113,17 +112,20 @@ class Client:  # MessengerApp
         self.clearConsole()
         self.display_channels()
         try:
-            channel_id = int(input("\033[33mID where to send the message: \033[0m"))
+            channel_id = int(input("\033[33mID du canal où envoyer le message : \033[0m"))
             if channel_id not in [channel.id for channel in self.server.get_channels()]:
-                print("\033[31mProblem\033[0m")
+                print("\033[31mCanal invalide.\033[0m")
                 return
-            sender_id = int(input("\033[33mID de l'utilisateur envoyant le message : \033[0m"))
-            content = input("\033[33mMessage: \033[0m")
-            self.server.post_message(channel_id, sender_id,  content)
+        
+            sender_name = input("\033[33mNom de l'utilisateur envoyant le message : \033[0m")
+            content = input("\033[33mMessage : \033[0m")
+        
+            # Envoyer le message
+            self.server.post_message(channel_id, sender_name, content)
             self.clearConsole()
-            print("\033[32mMessage sent\033[0m")
+            print("\033[32mMessage envoyé\033[0m")
         except ValueError:
-            print("\033[31m\nErreur de saisie.\033[0m")
+            print("\033[31mErreur de saisie.\033[0m")
             return
     
     def main_menu(self):

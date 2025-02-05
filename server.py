@@ -54,16 +54,26 @@ class Server(BaseServer) :
         return self.users
 
     def create_user(self, name):
-        user = User(len(self.users)+1, name)
+        if any(user.name == name for user in self.users):
+            print(f"\033[34mErreur: L'utilisateur {name} existe déjà.\033[0m")
+            return None
+    
+        used_ids = {user.id for user in self.users}
+        new_id = 1
+        while new_id in used_ids:
+            new_id += 1
+    
+        user = User(new_id, name)
         self.users.append(user)
         self.save()
         return user
     
     def ban_user(self, name):
-        user_to_ban = next((user for user in self.users if user.name==name), None)
-        if not user_to_ban :
+        user_to_ban = next((user for user in self.users if user.name == name), None)
+        if not user_to_ban:
             print('No user to ban')
             return
+    
         self.users.remove(user_to_ban)
         self.save()
 
@@ -86,33 +96,50 @@ class Server(BaseServer) :
 
     def get_channel_members(self, channel_id):
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
-        if channel:
-            return channel.members  
-        return []
+        if not channel:
+            print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
+            return []
+        return channel.members
 
-    def join_channel(self, channel_id, id, name):
-        user = next((user for user in self.users if user.name == name), None)
+    def join_channel(self, channel_id, user_name):
+        user = next((user for user in self.users if user.name == user_name), None)
         if not user:
-            print(f"\033[34mErreur: L'utilisateur {name} n'existe pas.\033[0m")
+            print(f"\033[34mErreur: L'utilisateur {user_name} n'existe pas.\033[0m")
             return
-    
+
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
         if not channel:
             print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
             return
 
+        if user in channel.members:
+            print(f"\033[34m{user_name} est déjà dans le canal {channel_id}.\033[0m")
+            return
+
         channel.members.append(user)
-        print(f"\033[34mL'utilisateur {name} (ID: {id}) a rejoint le canal {channel_id}.\033[0m")
+        print(f"\033[34m{user_name} (ID: {user.id}) a rejoint le canal {channel_id}.\033[0m")
         self.save()
 
     def get_all_messages(self):
-        return [message for message in self.messages]
+        for message in self.messages:
+            user = next((user for user in self.users if user.id == message.sender_id), None)
+            message.sender_name = user.name if user else "Unknown"
+        return self.messages
 
     def get_messages(self, channel_id):
-        return [message for message in self.messages if message.channel_id == channel_id]
+        messages = [message for message in self.messages if message.channel_id == channel_id]
+        for message in messages:
+            user = next((user for user in self.users if user.id == message.sender_id), None)
+            message.sender_name = user.name if user else "Unknown"
+        return messages    
 
-    def post_message(self, channel_id, sender_name,  content):
-        message = Message(sender_name, channel_id, content)
+    def post_message(self, channel_id, sender_name, content):
+        user = next((user for user in self.users if user.name == sender_name), None)
+        if not user:
+            print(f"\033[31mErreur : L'utilisateur {sender_name} n'existe pas.\033[0m")
+            return
+    
+        message = Message(user.id, channel_id, content)
         self.messages.append(message)
         self.save()
         return message
