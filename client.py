@@ -24,17 +24,17 @@ class Client:  # MessengerApp
                 print(f"\033[34m{user}\033[0m")
 
     def display_channel_members(self):
+        self.clearConsole()
+        self.display_channels()
         channel_id = int(input("\033[33mChannel ID : \033[0m"))
         self.clearConsole()
-    
         members = self.server.get_channel_members(channel_id)
-
         if not members:
             print("\033[31mAucun utilisateur trouvé.\033[0m")
         else:
             for member in members:
                     if isinstance(member, dict):
-                        print(f"\033[34mNom: {member["name"]} (ID: {member["id"]})\033[0m")
+                        print(f"\033[34mNom: {member['name']} (ID: {member['id']})\033[0m")
                     else:
                         print(f"\033[34mNom: {member.name} (ID: {member.id})\033[0m")
                 
@@ -48,9 +48,17 @@ class Client:  # MessengerApp
         self.clearConsole()
         self.display_channels()
         channel_id = int(input("\033[33mID du canal à rejoindre : \033[0m"))
-        user_name = input("\033[33mNom de l'utilisateur : \033[0m")  # Plus besoin de l'ID
+        if channel_id not in [channel.id for channel in self.server.get_channels()]:
+            print("\033[31mCanal invalide.\033[0m")
+            return
+        
+        user_name = input("\033[33mNom de l'utilisateur : \033[0m") 
+        if user_name not in [user.name for user in self.server.get_users()]:
+            print("\033[31mUtlisateur invalide.\033[0m")
+            return
+
         self.clearConsole()
-        self.server.join_channel(channel_id, user_name)  # Appel modifié
+        self.server.join_channel(channel_id, user_name)  
 
 
     def list_messages(self):
@@ -67,19 +75,21 @@ class Client:  # MessengerApp
             print("\033[31mAucun message à afficher.\033[0m")
 
     def display_messages(self, channel_id):
-        self.clearConsole()
         print(f"\033[32mMessages dans le canal {channel_id}\033[0m")
         messages = self.server.get_messages(channel_id)  
         if not messages:
-            print("\033[31mPas de messages dans ce channel.\033[0m")
+            print("\033[31mPas de message dans ce canal.\033[0m")
         else:
             for message in messages:
                 if isinstance(message, dict):  
-                    print(f"\033[34m[{message['reception_date']}] Sender {message['sender_name']} : {message['content']}\033[0m")
+                    sender_name = message.get('sender_name', "Unknown")
+                    print(f"\033[34mSender {sender_name} : {message['content']}\033[0m")
                 else:
                     print(f"\033[34mSender {message.sender_name} : {message.content}\033[0m")
 
     def create_user_menu(self):
+        self.clearConsole()
+        self.display_users()
         name = input("\033[33mName of the new user: \033[0m")
         self.server.create_user(name)
         print("\033[32mNew user created\033[0m")
@@ -90,43 +100,38 @@ class Client:  # MessengerApp
         self.display_users()
         name = input("\033[33mName of the user to ban: \033[0m")
         self.server.ban_user(name)
-        self.clearConsole()
-        print(f"\033[32m{name} ban\033[0m")
 
     def create_channel_menu(self):
+        self.clearConsole()
+        self.display_channels()
         name = input("\033[33mName of the new channel: \033[0m")
         self.server.create_channel(name)
-        self.clearConsole()
-        print("\033[32mNew channel created\033[0m")
+        
 
     def ban_channel_menu(self):
         self.clearConsole()
         self.display_channels()
         name = input("\033[33mName of the channel to ban: \033[0m")
         self.server.ban_channel(name)
-        self.clearConsole()
-        print(f"\033[32m{name} ban\033[0m")
-
     
     def send_message_menu(self):
         self.clearConsole()
         self.display_channels()
-        try:
-            channel_id = int(input("\033[33mID du canal où envoyer le message : \033[0m"))
-            if channel_id not in [channel.id for channel in self.server.get_channels()]:
-                print("\033[31mCanal invalide.\033[0m")
-                return
-        
-            sender_name = input("\033[33mNom de l'utilisateur envoyant le message : \033[0m")
-            content = input("\033[33mMessage : \033[0m")
-        
-            # Envoyer le message
-            self.server.post_message(channel_id, sender_name, content)
-            self.clearConsole()
-            print("\033[32mMessage envoyé\033[0m")
-        except ValueError:
-            print("\033[31mErreur de saisie.\033[0m")
+        channel_id = int(input("\033[33mID du canal où envoyer le message : \033[0m"))
+        if channel_id not in [channel.id for channel in self.server.get_channels()]:
+            print("\033[31mCanal invalide.\033[0m")
             return
+        
+        sender_name = input("\033[33mNom de l'utilisateur envoyant le message : \033[0m")
+        if sender_name not in [user.name for user in self.server.get_users()]:
+            print("\033[31mUtlisateur invalide.\033[0m")
+            return
+        content = input("\033[33mMessage : \033[0m")
+        
+        self.server.post_message(channel_id, sender_name, content)
+        self.clearConsole()
+        print("\033[32mMessage envoyé\033[0m")
+
     
     def main_menu(self):
      while True:
@@ -157,8 +162,13 @@ class Client:  # MessengerApp
         elif choice == "4":
             self.display_channels()
         elif choice == "5":
+            self.clearConsole()
+            self.display_channels()
             channel_id = int(input("\033[33m🔍 Entrez l'ID du canal pour voir les messages : \033[0m"))
-            self.display_messages(channel_id)
+            if channel_id not in [channel.id for channel in self.server.get_channels()]:
+                print("\033[31mCanal invalide.\033[0m")
+            else :
+                self.display_messages(channel_id)
         elif choice == "6":
             self.join_channel_menu()
         elif choice == "7":

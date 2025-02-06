@@ -55,8 +55,9 @@ class Server(BaseServer) :
 
     def create_user(self, name):
         if any(user.name == name for user in self.users):
-            print(f"\033[34mErreur: L'utilisateur {name} existe déjà.\033[0m")
-            return None
+            print(f"\033[31mErreur: L'utilisateur {name} existe déjà.\033[0m")
+            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            return
     
         used_ids = {user.id for user in self.users}
         new_id = 1
@@ -71,28 +72,46 @@ class Server(BaseServer) :
     def ban_user(self, name):
         user_to_ban = next((user for user in self.users if user.name == name), None)
         if not user_to_ban:
-            print('No user to ban')
-            return
-    
+            print("\033[31mL'utilisateur n'existe pas.\033[0m")
+            return  
+
         self.users.remove(user_to_ban)
         self.save()
+        print(f"\033[32m{name} a été banni avec succès.\033[0m")
 
     def get_channels(self):
         return self.channels
     
     def create_channel(self, name):
+        channel = next((channel for channel in self.channels if channel.name == name), None)
+        if channel:
+            print(f"\033[31mErreur: Le canal '{name}' existe déjà.\033[0m")
+            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            return
         channel = Channel( len(self.channels)+1 ,name)
+        print(f"\033[32mLe canal '{name}' a été crée.\033[0m")
         self.channels.append(channel)
         self.save()
         return channel
 
+
     def ban_channel(self, name):
         channel_to_ban = next((channel for channel in self.channels if channel.name == name), None)
+    
         if not channel_to_ban:
-            print('No channel to ban')
+            print(f"\033[31mErreur: Le canal '{name}' n'existe pas.\033[0m")
             return
+    
+        confirmation = input(f"\033[33mÊtes-vous sûr de vouloir bannir le canal '{name}' ? (o/n) : \033[0m")
+        if confirmation != 'o':
+            print("\033[34mAnnulation de la suppression du canal.\033[0m")
+            return
+ 
         self.channels.remove(channel_to_ban)
+        self.messages = [message for message in self.messages if message.channel_id != channel_to_ban.id]
         self.save()
+        print(f"\033[32mLe canal '{name}' a été banni avec succès.\033[0m")
+
 
     def get_channel_members(self, channel_id):
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
@@ -103,14 +122,7 @@ class Server(BaseServer) :
 
     def join_channel(self, channel_id, user_name):
         user = next((user for user in self.users if user.name == user_name), None)
-        if not user:
-            print(f"\033[34mErreur: L'utilisateur {user_name} n'existe pas.\033[0m")
-            return
-
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
-        if not channel:
-            print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
-            return
 
         if user in channel.members:
             print(f"\033[34m{user_name} est déjà dans le canal {channel_id}.\033[0m")
@@ -135,10 +147,6 @@ class Server(BaseServer) :
 
     def post_message(self, channel_id, sender_name, content):
         user = next((user for user in self.users if user.name == sender_name), None)
-        if not user:
-            print(f"\033[31mErreur : L'utilisateur {sender_name} n'existe pas.\033[0m")
-            return
-    
         message = Message(user.id, channel_id, content)
         self.messages.append(message)
         self.save()
@@ -155,7 +163,19 @@ class RemoteServer(BaseServer):
         return [User(id=user['id'], name=user['name']) for user in users]
     
     def create_user(self, name):
+        users_response = requests.get(self.url + "/users")  
+        users = users_response.json()
+        if any(user["name"] == name for user in users):
+            print(f"\033[31mErreur: L'utilisateur {name} existe déjà.\033[0m")
+            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            return
+
         response = requests.post(self.url + "/users/create", json={"name": name})
+        if response.status_code == 200:
+            print(f"\033[32mUtilisateur {name} créé avec succès.\033[0m")
+        else:
+            print(f"\033[31mErreur lors de la création de l'utilisateur {name}.\033[0m")   
+        input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
 
     def get_channels(self):
         response = requests.get(self.url + "/channels")
@@ -163,13 +183,22 @@ class RemoteServer(BaseServer):
         return [Channel(id=channel['id'], name=channel['name']) for channel in channels]
     
     def create_channel(self, name):
+        channels_response = requests.get(f"{self.url}/channels")
+        channels = channels_response.json()
+        channel = next((channel for channel in channels if channel["name"] == name), None)
+        if channel:
+            print(f"\033[31mErreur: Le canal {name} existe déjà.\033[0m")
+            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            return
         response = requests.post(self.url + "/channels/create", json={"name":name})
+        print(f"\033[32mLe canal {name} a été crée.\033[0m")
+
 
     def get_channel_members(self, channel_id):
         response = requests.get(f"{self.url}/channels/{channel_id}/members")
         return response.json()
 
-    def join_channel(self, channel_id, user_id, name):
+    def join_channel(self, channel_id, name):
 
         users_response = requests.get(self.url + "/users")
         users = users_response.json()
@@ -193,15 +222,33 @@ class RemoteServer(BaseServer):
 
     def get_all_messages(self):
         response = requests.get(f"{self.url}/messages", headers={"accept": "application/json"})
-        return response.json()
+        messages = response.json()
+        for message in messages:
+            user_response = requests.get(f"{self.url}/users/{message['sender_id']}")
+            user = user_response.json()
+            message['sender_name'] = user['name'] if user else "Unknown"
+        return messages
 
     def get_messages(self, channel_id):
-        response = requests.get(self.url + "/messages")
+        response = requests.get(f"{self.url}/messages")
         messages = response.json()
+        for message in messages:
+            if message['channel_id'] == channel_id:
+                user_response = requests.get(f"{self.url}/users/{message['sender_id']}")
+                user = user_response.json()
+                message['sender_name'] = user['name'] if user else "Unknown"
         return [message for message in messages if message['channel_id'] == channel_id]
-    
-    def post_message(self, channel_id, sender_id, content):
-        response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": sender_id,"content": content})
-        return response.json
+
+    def post_message(self, channel_id, sender_name, content):
+        users_response = requests.get(self.url + "/users")
+        users = users_response.json()
+        user = next((user for user in users if user['name'] == sender_name), None)
+        response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": user['id'],"content": content})
+        if response.status_code == 200:
+            print(f"\033[32mMessage envoyé avec succès dans le canal {channel_id}.\033[0m")
+            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+        else:
+            print(f"\033[31mErreur lors de l'envoi du message.\033[0m")
 
 
+  
