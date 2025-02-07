@@ -11,7 +11,6 @@ if __name__ == "__main__":
     if args.server:
         print(f"Chargement du serveur local : {args.server}")
         server = Server(args.server)
-        server.load()
     elif args.url:
         print(f"Connexion au serveur distant : {args.url}")
         server = RemoteServer(args.url)
