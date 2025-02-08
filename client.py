@@ -27,7 +27,12 @@ class Client:  # MessengerApp
         self.clearConsole()
         self.display_channels()
         channel_id = int(input("\033[33mChannel ID : \033[0m"))
+        if channel_id not in [channel.id for channel in self.server.get_channels()]:
+            self.clearConsole()
+            print("\033[31mCanal invalide.\033[0m")
+            return
         self.clearConsole()
+        print(f"\033[32mUtilisateurs dans le canal {channel_id}.\033[0m")
         members = self.server.get_channel_members(channel_id)
         if not members:
             print("\033[31mAucun utilisateur trouvé.\033[0m")
@@ -53,11 +58,11 @@ class Client:  # MessengerApp
             print(f"\033[34m{channel}\033[0m")
 
     def display_messages(self, channel_id):
-        print(f"\033[32mMessages dans le canal {channel_id}\033[0m")
         messages = self.server.get_messages(channel_id)  
         if not messages:
-            print("\033[31mPas de message dans ce canal.\033[0m")
+            print(f"\033[31mPas de message dans le canal {channel_id}.\033[0m")
         else:
+            print(f"\033[32mMessages dans le canal {channel_id} : \033[0m")
             for message in messages:
                 if isinstance(message, dict):  
                     sender_name = message.get('sender_name', "Unknown")
@@ -94,7 +99,7 @@ class Client:  # MessengerApp
         self.clearConsole()
         messages = self.server.get_all_messages()
         if not messages:
-            print("\033[31mPas de message dans ce canal.\033[0m")
+            print("\033[31mPas de message.\033[0m")
         else:
             print("\033[32m\n Liste des messages :\033[0m")
             for message in messages:
@@ -140,17 +145,27 @@ class Client:  # MessengerApp
      while True:
         print("\033[32m\n===================== 📩 MessengerApp =========================\033[0m")
         print()
+
+        print("\033[35m---- Gestion des Utilisateurs ----\033[0m")
         print("\033[34m1. 👥 Voir tous les utilisateurs\033[0m")
         print("\033[34m2. 🔍 Voir les utilisateurs d'un canal\033[0m")
         print("\033[34m3. 🆕 Créer un utilisateur\033[0m")
-        print("\033[34m4. 📢 Voir les canaux\033[0m")
-        print("\033[34m5. 📜 Lire les messages d'un canal\033[0m")
-        print("\033[34m6. 🔗 Rejoindre un canal\033[0m")
-        print("\033[34m7. 🏗️ Créer un canal\033[0m")
-        print("\033[34m8. 📨 Lister les messages\033[0m")
-        print("\033[34m9. ✉️ Envoyer un message\033[0m")
-        print("\033[34m10. 🚫 Bannir un utilisateur\033[0m")
-        print("\033[34m11. ❌ Bannir un canal\033[0m")
+        print("\033[34m4. 🚫 Bannir un utilisateur\033[0m")
+        print()
+
+        print("\033[35m---- Gestion des Canaux ----\033[0m")
+        print("\033[34m5. 📢 Voir les canaux\033[0m")
+        print("\033[34m6. 🏗️ Créer un canal\033[0m")
+        print("\033[34m7. 🔗 Rejoindre un canal\033[0m")
+        print("\033[34m8. ❌ Bannir un canal\033[0m")
+        print()
+
+        print("\033[35m---- Messages ----\033[0m")
+        print("\033[34m9. 📨 Lister les messages\033[0m")
+        print("\033[34m10. 📜 Lire les messages d'un canal\033[0m")
+        print("\033[34m11. ✉️ Envoyer un message\033[0m")
+        print()
+
         print("\033[31mx. Quitter\033[0m")
         print()
         choice = input("\033[33m🔸 Choisissez une option : \033[0m")  # Texte en jaune pour l'entrée utilisateur
@@ -162,8 +177,18 @@ class Client:  # MessengerApp
         elif choice == "3":
             self.create_user_menu()
         elif choice == "4":
-            self.display_channels()
+            self.ban_user_menu()
         elif choice == "5":
+            self.display_channels()
+        elif choice == "6":
+            self.create_channel_menu()
+        elif choice == "7":
+            self.join_channel_menu()
+        elif choice == "8":
+            self.ban_channel_menu()
+        elif choice == "9":
+            self.display_all_messages()
+        elif choice == "10":
             self.clearConsole()
             self.display_channels()
             channel_id = int(input("\033[33m🔍 Entrez l'ID du canal pour voir les messages : \033[0m"))
@@ -173,18 +198,8 @@ class Client:  # MessengerApp
             else :
                 self.clearConsole()
                 self.display_messages(channel_id)
-        elif choice == "6":
-            self.join_channel_menu()
-        elif choice == "7":
-            self.create_channel_menu()
-        elif choice == "8":
-            self.display_all_messages()
-        elif choice == "9":
-            self.post_message_menu()
-        elif choice == "10":
-            self.ban_user_menu()
         elif choice == "11":
-            self.ban_channel_menu()
+            self.post_message_menu()
         elif choice == "x":
             print("\033[31m👋 Au revoir !\033[0m")
             break

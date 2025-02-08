@@ -49,6 +49,8 @@ class BaseServer(ABC):
         """Poste un message dans un canal."""
         pass
 
+
+
 class Server(BaseServer) :
     def __init__(self, file_path : str):
         self.file_path = file_path
@@ -61,12 +63,24 @@ class Server(BaseServer) :
     def load(self):
         if not self.file_path:
             raise ValueError("Le chemin du fichier JSON est manquant. Utilisez l'argument --server pour spécifier un fichier.")
+    
         with open(self.file_path, "r") as f:
             server = json.load(f)
+        
             self.users = [User(id=user['id'], name=user['name']) for user in server.get('users', [])]
-            self.channels = [Channel(id=channel['id'], name=channel['name']) for channel in server.get('channels', [])]
+        
+            self.channels = []
+            for channel_data in server.get('channels', []):
+                channel = Channel(id=channel_data['id'], name=channel_data['name'])
+            
+                for member_data in channel_data.get('members', []):
+                    user = next((u for u in self.users if u.id == member_data['id']), None)
+                    if user:
+                        channel.members.append(user)
+            
+                self.channels.append(channel)
+        
             self.messages = [Message(sender_id=message['sender_id'], channel_id=message['channel'], content=message['content']) for message in server.get('messages', [])]
-
 
     def save(self):
         with open(self.file_path, "w") as f:
@@ -76,14 +90,13 @@ class Server(BaseServer) :
                 'messages': [message.to_dict() for message in self.messages]
             }, f)
     
-    # Méthodes abstraites implémentées
+    # Méthodes abstraites implémentées (+ ban_user et ban_channel)
     def get_users(self) -> List[User]:
         return self.users
 
     def create_user(self, name : str) -> User:
         if any(user.name == name for user in self.users):
-            print(f"\033[31mErreur: L'utilisateur {name} existe déjà.\033[0m")
-            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            print(f"\033[31mL'utilisateur {name} existe déjà.\033[0m")
             return
     
         used_ids = {user.id for user in self.users}
@@ -93,6 +106,7 @@ class Server(BaseServer) :
     
         user = User(new_id, name)
         self.users.append(user)
+        print(f"\033[32mL'utilisateur {name} a été créé avec succès.\033[0m")
         self.save()
         return user
     
@@ -112,13 +126,12 @@ class Server(BaseServer) :
     def create_channel(self, name : str) -> Channel:
         channel = next((channel for channel in self.channels if channel.name == name), None)
         if channel:
-            print(f"\033[31mErreur: Le canal '{name}' existe déjà.\033[0m")
-            input("\033[33mAppuyez sur Entrée pour continuer...\033[0m")
+            print(f"\033[31mLe canal {name} existe déjà.\033[0m")
             return
         
         new_id = max((c.id for c in self.channels), default=0) + 1
         channel = Channel(new_id, name)
-        print(f"\033[32mLe canal '{name}' a été crée.\033[0m")
+        print(f"\033[32mLe canal {name} a été crée avec succès.\033[0m")
         self.channels.append(channel)
         self.save()
         return channel
@@ -133,14 +146,11 @@ class Server(BaseServer) :
         self.channels.remove(channel_to_ban)
         self.messages = [message for message in self.messages if message.channel_id != channel_to_ban.id]
         self.save()
-        print(f"\033[32mLe canal '{name}' a été banni avec succès.\033[0m")
+        print(f"\033[32mLe canal {name} a été banni avec succès.\033[0m")
 
 
     def get_channel_members(self, channel_id : int) -> List[User]:
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
-        if not channel:
-            print(f"\033[34mErreur: Le canal {channel_id} n'existe pas.\033[0m")
-            return []
         return channel.members
 
     def join_channel(self, channel_id : int, user_name : str):
@@ -152,7 +162,7 @@ class Server(BaseServer) :
             return
 
         channel.members.append(user)
-        print(f"\033[34m{user_name} (ID: {user.id}) a rejoint le canal {channel_id}.\033[0m")
+        print(f"\033[32m{user_name} (ID: {user.id}) a rejoint le canal {channel_id}.\033[0m")
         self.save()
 
     def get_all_messages(self) -> List[Message]:
@@ -170,17 +180,26 @@ class Server(BaseServer) :
 
     def post_message(self, channel_id : int, sender_name : str, content : str) -> Message:
         user = next((user for user in self.users if user.name == sender_name), None)
+
+        channel = next((channel for channel in self.channels if channel.id == channel_id), None)
+        if user.id not in [m.id for m in channel.members]:
+            print(f"\033[31m{sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
+            return None
+        
         message = Message(user.id, channel_id, content)
         self.messages.append(message)
+        print(f"\033[32m{sender_name} a envoyé un message avec succès dans le canal {channel.name}.\033[0m")
         self.save()
         return message
     
     
+
+
 class RemoteServer(BaseServer):
     def __init__(self, url):
         self.url = url
 
-    # Implémentation des méthodes abstraites
+    # Méthodes abstraites implémentées
     def get_users(self) -> List[User]:
         response = requests.get(self.url + "/users")  
         users = response.json()  
@@ -190,7 +209,7 @@ class RemoteServer(BaseServer):
         users_response = requests.get(self.url + "/users")  
         users = users_response.json()
         if any(user["name"] == name for user in users):
-            print(f"\033[31mErreur: L'utilisateur {name} existe déjà.\033[0m")
+            print(f"\033[31mL'utilisateur {name} existe déjà.\033[0m")
             return
 
         response = requests.post(self.url + "/users/create", json={"name": name})
@@ -207,10 +226,12 @@ class RemoteServer(BaseServer):
     def create_channel(self, name : str) -> Channel:
         channels_response = requests.get(f"{self.url}/channels")
         channels = channels_response.json()
+
         channel = next((channel for channel in channels if channel["name"] == name), None)
         if channel:
-            print(f"\033[31mErreur: Le canal {name} existe déjà.\033[0m")
+            print(f"\033[31mLe canal {name} existe déjà.\033[0m")
             return
+        
         response = requests.post(self.url + "/channels/create", json={"name":name})
         print(f"\033[32mLe canal {name} a été crée avec succès.\033[0m")
 
@@ -233,7 +254,7 @@ class RemoteServer(BaseServer):
 
         response = requests.post(f"{self.url}/channels/{channel_id}/join", json={"user_id": user_id, "name": user_name})
         if response.status_code == 200:
-            print(f"\033[32m{user_name} a rejoint le canal {channel_id}.\033[0m")
+            print(f"\033[32m{user_name} (ID: {user.id}) a rejoint le canal {channel_id}.")
         else:
             print(f"\033[31mErreur lors de la jonction au canal : {response.text}\033[0m")
 
@@ -263,11 +284,12 @@ class RemoteServer(BaseServer):
 
         members = requests.get(f"{self.url}/channels/{channel_id}/members").json()
         if not any(m['id'] == user['id'] for m in members):
-            print(f"\033[31mErreur: {sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
+            print(f"\033[31m{sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
             return None
+        
         response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": user['id'],"content": content})
         if response.status_code == 200:
-            print(f"\033[32mMessage envoyé avec succès dans le canal {channel_id}.\033[0m")
+            print(f"\033[32m{sender_name} a envoyé un message avec succès dans le canal {channel_id}.\033[0m")
         else:
             print(f"\033[31mErreur lors de l'envoi du message.\033[0m")
 
