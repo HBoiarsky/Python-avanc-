@@ -287,9 +287,13 @@ class RemoteServer(BaseServer):
             print(f"\033[31m{sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
             return None
         
+        channels_response = requests.get(f"{self.url}/channels")
+        channels = channels_response.json()
+        channel = next((c for c in channels if c['id'] == channel_id), None)
+        channel_name = channel['name']
         response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": user['id'],"content": content})
         if response.status_code == 200:
-            print(f"\033[32m{sender_name} a envoyé un message avec succès dans le canal {channel_id}.\033[0m")
+            print(f"\033[32m{sender_name} a envoyé un message avec succès dans le canal {channel_name}.\033[0m")
         else:
             print(f"\033[31mErreur lors de l'envoi du message.\033[0m")
 
