@@ -5,15 +5,22 @@ class Client:  # MessengerApp
 
     @staticmethod
     def clearConsole():
+        """Nettoie la console en fonction du système d'exploitation."""
         command = "clear"
         if os.name in ("nt", "dos"):
             command = "cls"
         os.system(command)
 
     def __init__(self, server):
+        """Initialise le client avec un serveur."""
         self.server = server
 
+    # ---Gestion des utilisateurs---
     def display_users(self):
+        """ 
+        Affiche la liste de tous les utilisateurs enregistrés sur le serveur.
+        Si aucun utilisateur n'est trouvé, affiche un message d'erreur.
+        """
         self.clearConsole()
         print("\033[32mUser list\n--------\033[0m")
         users = self.server.get_users()  
@@ -24,6 +31,11 @@ class Client:  # MessengerApp
                 print(f"\033[34m{user}\033[0m")
 
     def display_channel_members(self):
+        """
+        Affiche la liste des membres d'un canal spécifique.
+        L'utilisateur doit entrer l'ID du canal.
+        Si le canal est invalide, affiche un message d'erreur.
+        """
         self.clearConsole()
         self.display_channels()
         channel_id = int(input("\033[33mChannel ID : \033[0m"))
@@ -44,33 +56,52 @@ class Client:  # MessengerApp
                         print(f"\033[34mNom: {member.name} (ID: {member.id})\033[0m")
                 
     def create_user_menu(self):
+        """
+        Permet à l'utilisateur de créer un nouvel utilisateur.
+        Affiche la liste des utilisateurs existants avant de demander le nom du nouvel utilisateur.
+        """
         self.clearConsole()
         self.display_users()
         name = input("\033[33mName of the new user: \033[0m")
         self.clearConsole()
         self.server.create_user(name)
         
+    def ban_user_menu(self):
+        """
+        Permet de bannir un utilisateur.
+        Affiche la liste des utilisateurs avant de demander le nom de l'utilisateur à bannir.
+        """""
+        self.clearConsole()
+        self.display_users()
+        name = input("\033[33mNom de l'utilisateur à bannir: \033[0m")
+        self.clearConsole()
+        self.server.ban_user(name)
 
+    # ---Gestion des canaux---
     def display_channels(self):
+        """Affiche la liste de tous les canaux disponibles sur le serveur."""
         self.clearConsole()
         print("\033[32mChannel list\n--------\033[0m")
         for channel in self.server.get_channels():
             print(f"\033[34m{channel}\033[0m")
 
-    def display_messages(self, channel_id):
-        messages = self.server.get_messages(channel_id)  
-        if not messages:
-            print(f"\033[31mPas de message dans le canal {channel_id}.\033[0m")
-        else:
-            print(f"\033[32mMessages dans le canal {channel_id} : \033[0m")
-            for message in messages:
-                if isinstance(message, dict):  
-                    sender_name = message.get('sender_name', "Unknown")
-                    print(f"\033[34mSender {sender_name} : {message['content']}\033[0m")
-                else:
-                    print(f"\033[34mSender {message.sender_name} : {message.content}\033[0m")
+    def create_channel_menu(self):
+        """
+        Permet à l'utilisateur de créer un nouveau canal.
+        Affiche la liste des canaux existants avant de demander le nom du nouveau canal.
+        """
+        self.clearConsole()
+        self.display_channels()
+        name = input("\033[33mName of the new channel: \033[0m")
+        self.clearConsole()
+        self.server.create_channel(name)
 
     def join_channel_menu(self):
+        """
+        Permet à un utilisateur de rejoindre un canal.
+        L'utilisateur doit entrer l'ID du canal et son nom.
+        Si le canal ou l'utilisateur est invalide, affiche un message d'erreur.
+        """
         self.clearConsole()
         self.display_channels()
         channel_id = int(input("\033[33mID du canal à rejoindre : \033[0m"))
@@ -88,14 +119,24 @@ class Client:  # MessengerApp
         self.clearConsole()
         self.server.join_channel(channel_id, user_name)  
 
-    def create_channel_menu(self):
+
+    def ban_channel_menu(self):
+        """
+        Permet de bannir un canal.
+        Affiche la liste des canaux avant de demander le nom du canal à bannir.
+        """
         self.clearConsole()
         self.display_channels()
-        name = input("\033[33mName of the new channel: \033[0m")
+        name = input("\033[33mNom du canal à bannir : \033[0m")
         self.clearConsole()
-        self.server.create_channel(name)
-
+        self.server.ban_channel(name)
+    
+    # ---Messages---
     def display_all_messages(self):
+        """
+        Affiche tous les messages de tous les canaux.
+        Si aucun message n'est trouvé, affiche un message d'erreur.
+        """
         self.clearConsole()
         messages = self.server.get_all_messages()
         if not messages:
@@ -108,7 +149,27 @@ class Client:  # MessengerApp
                 else:
                     print(f"\033[34m(Canal {message.channel_id}) Sender {message.sender_name} : {message.content}\033[0m")
 
+
+    def display_messages(self, channel_id):
+        """Affiche tous les messages d'un canal spécifique."""
+        messages = self.server.get_messages(channel_id)  
+        if not messages:
+            print(f"\033[31mPas de message dans le canal {channel_id}.\033[0m")
+        else:
+            print(f"\033[32mMessages dans le canal {channel_id} : \033[0m")
+            for message in messages:
+                if isinstance(message, dict):  
+                    sender_name = message.get('sender_name', "Unknown")
+                    print(f"\033[34mSender {sender_name} : {message['content']}\033[0m")
+                else:
+                    print(f"\033[34mSender {message.sender_name} : {message.content}\033[0m")
+
     def post_message_menu(self):
+        """
+        Permet à un utilisateur d'envoyer un message dans un canal spécifique.
+        L'utilisateur doit entrer l'ID du canal, son nom et le contenu du message.
+        Si le canal ou l'utilisateur est invalide, affiche un message d'erreur.
+        """
         self.clearConsole()
         self.display_channels()
         channel_id = int(input("\033[33mID du canal où envoyer le message : \033[0m"))
@@ -127,33 +188,21 @@ class Client:  # MessengerApp
         self.clearConsole()
         self.server.post_message(channel_id, sender_name, content)
 
-    def ban_user_menu(self):
-        self.clearConsole()
-        self.display_users()
-        name = input("\033[33mNom de l'utilisateur à bannir: \033[0m")
-        self.clearConsole()
-        self.server.ban_user(name)
 
-    def ban_channel_menu(self):
-        self.clearConsole()
-        self.display_channels()
-        name = input("\033[33mNom du canal à bannir : \033[0m")
-        self.clearConsole()
-        self.server.ban_channel(name)
-    
+    # ---Main menu---
     def main_menu(self):
      while True:
         print("\033[32m\n===================== 📩 MessengerApp =========================\033[0m")
         print()
 
-        print("\033[35m---- Gestion des Utilisateurs ----\033[0m")
+        print("\033[35m---- Gestion des utilisateurs ----\033[0m")
         print("\033[34m1. 👥 Voir tous les utilisateurs\033[0m")
         print("\033[34m2. 🔍 Voir les utilisateurs d'un canal\033[0m")
         print("\033[34m3. 🆕 Créer un utilisateur\033[0m")
         print("\033[34m4. 🚫 Bannir un utilisateur\033[0m")
         print()
 
-        print("\033[35m---- Gestion des Canaux ----\033[0m")
+        print("\033[35m---- Gestion des canaux ----\033[0m")
         print("\033[34m5. 📢 Voir les canaux\033[0m")
         print("\033[34m6. 🏗️ Créer un canal\033[0m")
         print("\033[34m7. 🔗 Rejoindre un canal\033[0m")

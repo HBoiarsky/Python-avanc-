@@ -10,6 +10,7 @@ class BaseServer(ABC):
         """Récupère tous les utilisateurs."""
         pass
 
+    @abstractmethod
     def create_user(self, name : str) -> User:
         """Crée un utilisateur."""
         pass
@@ -136,7 +137,6 @@ class Server(BaseServer) :
         self.save()
         return channel
 
-
     def ban_channel(self, name : str):
         channel_to_ban = next((channel for channel in self.channels if channel.name == name), None)
         if not channel_to_ban:
@@ -147,7 +147,6 @@ class Server(BaseServer) :
         self.messages = [message for message in self.messages if message.channel_id != channel_to_ban.id]
         self.save()
         print(f"\033[32mLe canal {name} a été banni avec succès.\033[0m")
-
 
     def get_channel_members(self, channel_id : int) -> List[User]:
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
@@ -183,7 +182,7 @@ class Server(BaseServer) :
 
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
         if user.id not in [m.id for m in channel.members]:
-            print(f"\033[31m{sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
+            print(f"\033[31m{sender_name} doit rejoindre le canal {channel_id} avant d'envoyer des messages.\033[0m")
             return None
         
         message = Message(user.id, channel_id, content)
@@ -193,7 +192,6 @@ class Server(BaseServer) :
         return message
     
     
-
 
 class RemoteServer(BaseServer):
     def __init__(self, url):
@@ -234,7 +232,6 @@ class RemoteServer(BaseServer):
         
         response = requests.post(self.url + "/channels/create", json={"name":name})
         print(f"\033[32mLe canal {name} a été crée avec succès.\033[0m")
-
 
     def get_channel_members(self, channel_id : int) -> List[User]:
         response = requests.get(f"{self.url}/channels/{channel_id}/members")
@@ -284,7 +281,7 @@ class RemoteServer(BaseServer):
 
         members = requests.get(f"{self.url}/channels/{channel_id}/members").json()
         if not any(m['id'] == user['id'] for m in members):
-            print(f"\033[31m{sender_name} doit rejoindre le canal avant d'envoyer des messages.\033[0m")
+            print(f"\033[31m{sender_name} doit rejoindre le canal {channel_id} avant d'envoyer des messages.\033[0m")
             return None
         
         channels_response = requests.get(f"{self.url}/channels")
