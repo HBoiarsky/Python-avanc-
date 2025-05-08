@@ -8,6 +8,9 @@ if __name__ == "__main__":
     parser.add_argument('--url', help='URL du serveur distant')
     args = parser.parse_args()
 
+    # Vous pouvez indiquer que la variable `server` peut être
+    # soit un `RemoteServer` soit un `Server`
+    server: RemoteServer | Server
     if args.server:
         print(f"Chargement du serveur local : {args.server}")
         server = Server(args.server)

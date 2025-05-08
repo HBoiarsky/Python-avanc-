@@ -8,56 +8,64 @@ class BaseServer(ABC):
     @abstractmethod
     def get_users(self) -> List[User]:
         """Récupère tous les utilisateurs."""
-        pass
+        # Nous n'avons pas vu les exceptions en cours,
+        # mais elles permettent de remonter des erreurs d'exécutions.
+        # Ici ce code n'est pas censé être atteint, car la fonction
+        # sera toujours appelée sur une sous-classe qui la redéfinira.
+        # Si on oublie de la redéfinir, l'erreur sera assez explicite
+        # (Not implemented)
+        raise NotImplementedError()
 
     @abstractmethod
     def create_user(self, name : str) -> User:
         """Crée un utilisateur."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_channels(self) -> List[Channel]:
         """Récupère tous les canaux."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def create_channel(self, name: str) -> Channel:
         """Crée un canal."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_channel_members(self, channel_id : int) -> List[User]:
         """Récupère tous les utilisateurs d'un canal."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def join_channel(self, channel_id : int, user_name : str):
         """Ajoute un utilisateur à un canal."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_all_messages(self) -> List[Message]:
         """Récupère tous les messages."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def get_messages(self, channel_id : int) -> List[Message]:
         """Récupère tous les messages d'un canal."""
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def post_message(self, channel_id : int, sender_name : str, content : str) -> Message:
         """Poste un message dans un canal."""
-        pass
+        raise NotImplementedError()
 
 
 
 class Server(BaseServer) :
     def __init__(self, file_path : str):
         self.file_path = file_path
-        self.users = []
-        self.channels = []
-        self.messages = []
+        # N'oubliez pas les annotations de type
+        # lors de la définition de variables
+        self.users: list[User] = []
+        self.channels: list[Channel] = []
+        self.messages: list[Message] = []
         self.load()
      
     # Méthodes spécifiques au serveur local
@@ -98,6 +106,12 @@ class Server(BaseServer) :
     def create_user(self, name : str) -> User:
         if any(user.name == name for user in self.users):
             print(f"\033[31mL'utilisateur {name} existe déjà.\033[0m")
+            # Attention, vous indiquez dans la signature de la fonction
+            # que vous renvoyez un `User`, mais ce n'est pas le cas ici.
+            # C'est un problème classique pour lequel vous avez 2 solutions :
+            # - indiquer cette possibilité dans la signature (User | None ou
+            #   Optional[User]). C'est plus verbeux mais plus explicite.
+            # - renvoyer un exception au lieu de faire un retour vide
             return
     
         used_ids = {user.id for user in self.users}
@@ -150,12 +164,23 @@ class Server(BaseServer) :
 
     def get_channel_members(self, channel_id : int) -> List[User]:
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
+        # N'oubliez pas de gérer le cas où `next` renvoie `None`. Vous avez
+        # bien fait de mettre une valeur par défaut dans la fonction
+        # `next`, mais ça peut être contre-productif si vous n'allez pas
+        # au bout de la démarche.
+        # En effet, avec None, vous aurez un message d'erreur moins explicite
+        # (None n'a pas d'attribut `members`) que si vous aviez laissé
+        # `next` échouer et remonter une exception.
         return channel.members
 
     def join_channel(self, channel_id : int, user_name : str):
         user = next((user for user in self.users if user.name == user_name), None)
         channel = next((channel for channel in self.channels if channel.id == channel_id), None)
 
+        # Cette partie de la logique est dupliquée avec la classe
+        # `RemoteServer`. Une bonne façon de la mutualiser aurait
+        # été de la laisse au niveau du `Client`, puisqu'il s'agit
+        # d'une interaction utilisateur.
         if user in channel.members:
             print(f"\033[34m{user_name} est déjà dans le canal {channel_id}.\033[0m")
             return
@@ -213,6 +238,8 @@ class RemoteServer(BaseServer):
         response = requests.post(self.url + "/users/create", json={"name": name})
         if response.status_code == 200:
             print(f"\033[32mL'utilisateur {name} a été créé avec succès.\033[0m")
+
+            return User(response.json()['id'], response.json()['name'])
         else:
             print(f"\033[31mErreur lors de la création de l'utilisateur {name}.\033[0m")   
 
@@ -232,12 +259,18 @@ class RemoteServer(BaseServer):
         
         response = requests.post(self.url + "/channels/create", json={"name":name})
         print(f"\033[32mLe canal {name} a été crée avec succès.\033[0m")
+        return Channel(response.json()['id'], response.json()['name'])
 
     def get_channel_members(self, channel_id : int) -> List[User]:
         response = requests.get(f"{self.url}/channels/{channel_id}/members")
+
+        # Attention, la signature indique une `List[User]` mais
+        # vous renvoyez une `List[dict]`
         return response.json()
 
-    def join_channel(self, channel_id : int, user_name : str):
+    def join_channel(self, channel_id : int, user_name : str) -> None:
+        # Vous utilisez plusieurs fois les 3 lignes suivantes,
+        # vous pouvez les extraire dans une fonction auxiliaire
         users_response = requests.get(self.url + "/users")
         users = users_response.json()
         user = next((user for user in users if user["name"] == user_name), None)
@@ -291,6 +324,9 @@ class RemoteServer(BaseServer):
         response = requests.post(f"{self.url}/channels/{channel_id}/messages/post", json={"sender_id": user['id'],"content": content})
         if response.status_code == 200:
             print(f"\033[32m{sender_name} a envoyé un message avec succès dans le canal {channel_name}.\033[0m")
+            # N'oubliez pas les valeurs de retour que vous déclarez
+            # dans la signature de vos fonctions
+            return Message(response.json()['id'], channel_id, content)
         else:
             print(f"\033[31mErreur lors de l'envoi du message.\033[0m")
 
